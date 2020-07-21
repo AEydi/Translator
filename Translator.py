@@ -7,14 +7,12 @@ from PyQt5.QtWidgets import QApplication, QLabel, QStyle
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QPoint
 import threading
 import pyperclip
-
 from googletrans import Translator
 import time
 
 translator = Translator()
 
 copy_answer = True
-
 
 class ClipboardWatcher(QThread):
     signal = pyqtSignal('PyQt_PyObject')
@@ -80,57 +78,63 @@ class My_App(QLabel):
                 ind = clipboard_content.find(".", ind + 2)
                 if not(clipboard_content[ind - 1:ind + 2].replace('.','').isdigit()):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
-            ans = translator.translate(clipboard_content,dest='fa')
-            alltrans = ans.extra_data['all-translations']
-            define = ans.extra_data['definitions']
-            s = ""
+            try:
+                ans = translator.translate(clipboard_content,dest='fa')
+                alltrans = ans.extra_data['all-translations']
+                define = ans.extra_data['definitions']
+                s = ""
             
-            if alltrans is not None:
-                for i in range(len(alltrans)):
-                    cashAll = ""
-                    cash = ""
-                    c = 0
-                    s += alltrans[i][0] + '\n'
-                    for j in range(len(alltrans[i][2])):
-                        cashAll += alltrans[i][2][j][0] + ' - '
-                        if alltrans[i][2][j][1][0] == clipboard_content:
-                            cash += alltrans[i][2][j][0] + ' - '
-                            c +=1
-                    if c > 0:
-                        s += cash[0:-3] + '\n'
-                        cash = ""
+                if alltrans is not None:
+                    for i in range(len(alltrans)):
                         cashAll = ""
-                    if c == 0:
-                        s += cashAll[0:-3] + '\n'
-                        cashAll = ""         
-            else:
-                s += ans.text + '\n'
-            if define is not None:
-                for i in range(len(define)):
-                    for j in range(len(define[i][1])):
-                        s += define[i][1][j][0] + '\n'
-            
-            copy_ans = s
-            # add newline to adjustSize limitation
-            ind1 = 0
-            ind2 = -1
-            rP = 0 #place for replace
-            L = len(s)
-            while (L > 100) & (L - ind1 > 80):
-                ind2 = s.find('\n',ind1 + 1)
-                if ind2 - ind1 > 80:
-                    rP = s.find(' ', ind1 + 70, ind1 + 90)
-                    s = s[:rP] + '\n ' + s[rP + 1:]
-                    ind1 = rP
+                        cash = ""
+                        c = 0
+                        s += alltrans[i][0] + '\n'
+                        for j in range(len(alltrans[i][2])):
+                            cashAll += alltrans[i][2][j][0] + ' - '
+                            if alltrans[i][2][j][1][0] == clipboard_content:
+                                cash += alltrans[i][2][j][0] + ' - '
+                                c +=1
+                        if c > 0:
+                            s += cash[0:-3] + '\n'
+                            cash = ""
+                            cashAll = ""
+                        if c == 0:
+                            s += cashAll[0:-3] + '\n'
+                            cashAll = ""         
                 else:
-                    ind1 = ind2
+                    s += ans.text + '\n'
+                if define is not None:
+                    for i in range(len(define)):
+                        for j in range(len(define[i][1])):
+                            s += define[i][1][j][0] + '\n'
             
-            self._lastAns = copy_ans
-            pyperclip.copy(copy_ans)
-            self.setText(s)
-            self.adjustSize()
+                copy_ans = s
+                # add newline to adjustSize limitation
+                ind1 = 0
+                ind2 = -1
+                rP = 0 #place for replace
+                L = len(s)
+                while (L > 100) & (L - ind1 > 80):
+                    ind2 = s.find('\n',ind1 + 1)
+                    if ind2 - ind1 > 80:
+                        rP = s.find(' ', ind1 + 70, ind1 + 90)
+                        s = s[:rP] + '\n ' + s[rP + 1:]
+                        ind1 = rP
+                    else:
+                        ind1 = ind2
+            
+                self._lastAns = copy_ans
+                pyperclip.copy(copy_ans)
+                self.setText(s)
+                self.adjustSize()
+            except:
+                self.setText("Error in Connection! Try Again.\nIf your connection to the internet is good and the problem has been persisted for some time.\nYour access to the Google Translate may be blocked. Rerun the App or change your IP.")
+                self.adjustSize()
         else:
             self._firstStart = False
+    
+    
     def startWatcher(self):
         self.watcher.start()
     
