@@ -12,8 +12,9 @@ from googletrans import Translator
 import time
 
 translator = Translator()
-#ans = translator.translate('primarily',dest='fa')
-pyperclip.copy("سلام\nبرنامه آماده استفاده است.")
+
+copy_answer = True
+
 
 class ClipboardWatcher(QThread):
     signal = pyqtSignal('PyQt_PyObject')
@@ -39,13 +40,15 @@ class ClipboardWatcher(QThread):
     def stopped(self):
         return self._stop_event.is_set()
 
-class Invisible(QLabel):
+class My_App(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__press_pos = QPoint()
         self.initUI()
 
     def initUI(self):
+        self._firstStart = True
+        self._lastAns = ""
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         #self.setWindowFlags(Qt.FramelessWindowHint)
         self.setText("سلام\nبرنامه آماده استفاده است.")
@@ -66,8 +69,10 @@ class Invisible(QLabel):
         self.watcher = ClipboardWatcher()
         self.watcher.signal.connect(self.databack)
     
+    
     def databack(self, clipboard_content):
-        if ("http" not in clipboard_content) | (".com" not in clipboard_content):
+        #global last_ans
+        if (("http" not in clipboard_content) | (".com" not in clipboard_content)) & (self._lastAns != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 1) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (len(clipboard_content) < 20))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
             n = clipboard_content.count(".")
             ind = 0
@@ -85,27 +90,28 @@ class Invisible(QLabel):
                     cashAll = ""
                     cash = ""
                     c = 0
-                    s += alltrans[i][0] + '\n '
-                    #self.plainTextEdit.appendPlainText(alltrans[i][0])
+                    s += alltrans[i][0] + '\n'
                     for j in range(len(alltrans[i][2])):
                         cashAll += alltrans[i][2][j][0] + ' - '
                         if alltrans[i][2][j][1][0] == clipboard_content:
                             cash += alltrans[i][2][j][0] + ' - '
                             c +=1
                     if c > 0:
-                        s += cash[0:-3] + '\n '
-                        #self.plainTextEdit.appendPlainText(cash)
+                        s += cash[0:-3] + '\n'
                         cash = ""
                         cashAll = ""
                     if c == 0:
-                        s += cashAll[0:-3] + '\n '
+                        s += cashAll[0:-3] + '\n'
                         cashAll = ""         
             else:
-                s += ans.text + '\n '
+                s += ans.text + '\n'
             if define is not None:
                 for i in range(len(define)):
                     for j in range(len(define[i][1])):
-                        s += define[i][1][j][0] + '\n '
+                        s += define[i][1][j][0] + '\n'
+            
+            copy_ans = s
+            # add newline to adjustSize limitation
             ind1 = 0
             ind2 = -1
             rP = 0 #place for replace
@@ -118,12 +124,13 @@ class Invisible(QLabel):
                     ind1 = rP
                 else:
                     ind1 = ind2
-            if s == "سلام برنامه آماده استفاده است.\n ":
-                s = "سلام\nبرنامه آماده استفاده است."
-
+            
+            self._lastAns = copy_ans
+            pyperclip.copy(copy_ans)
             self.setText(s)
             self.adjustSize()
-        
+        else:
+            self._firstStart = False
     def startWatcher(self):
         self.watcher.start()
     
@@ -149,7 +156,7 @@ class Invisible(QLabel):
 
 def main():
     app = QApplication(sys.argv)
-    Trans = Invisible()
+    Trans = My_App()
     Trans.show()
     Trans.startWatcher()
     return app.exec_()
