@@ -4,4 +4,6 @@ by this comment you can create .exe file.<br/>
 pyi-makespec Translator.py -F --icon=Translator.ico --noconsole<br/>
 pyinstaller Translator.spec<br/>
 
-![Screenshot](Translator.ico)
+<p align="center">
+  <img src="Translator.ico" width="350" title="Icon">
+</p>
