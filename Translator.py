@@ -47,6 +47,9 @@ class My_App(QLabel):
     def initUI(self):
         self._firstStart = True
         self._lastAns = ""
+        self._startPress = 0
+        self._endPress = 0
+        self._lastClipboard = ""
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         #self.setWindowFlags(Qt.FramelessWindowHint)
         self.setText("سلام\nبرنامه آماده استفاده است.")
@@ -80,6 +83,7 @@ class My_App(QLabel):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
             try:
                 ans = translator.translate(clipboard_content,dest='fa')
+                self._lastClipboard = clipboard_content
                 alltrans = ans.extra_data['all-translations']
                 define = ans.extra_data['definitions']
                 s = ""
@@ -125,7 +129,6 @@ class My_App(QLabel):
                         ind1 = ind2
             
                 self._lastAns = copy_ans
-                pyperclip.copy(copy_ans)
                 self.setText(s)
                 self.adjustSize()
             except:
@@ -145,14 +148,27 @@ class My_App(QLabel):
         
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
+            self._startLeftPress = time.time_ns()
             self.__press_pos = event.pos()
         else:
-            self.setText(" ")
-            self.adjustSize()
+            self._startLeftPress = time.time_ns()
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
+            self._endLeftPress = time.time_ns()
+            elapsedTime = self._endPress - self._startPress
+            if (elapsedTime > 400000000) & (elapsedTime < 1500000000):
+                pyperclip.copy(self._lastAns)
             self.__press_pos = QPoint()
+        else:
+            self._endLeftPress = time.time_ns()
+            elapsedTime = self._endPress - self._startPress
+            if (elapsedTime > 400000000) & (elapsedTime < 1500000000):
+                pyperclip.copy(self._lastClipboard)
+            elif elapsedTime < 300000000:
+                self.setText(" ")
+                self.adjustSize()
+
 
     def mouseMoveEvent(self, event):
         if not self.__press_pos.isNull():  
