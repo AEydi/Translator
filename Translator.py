@@ -11,6 +11,7 @@ from googletrans import Translator
 import time
 
 translator = Translator()
+#ans = translator.translate('book', dest='fa')
 
 copy_answer = True
 
@@ -43,16 +44,21 @@ class My_App(QLabel):
         super().__init__(*args, **kwargs)
         self.__press_pos = QPoint()
         self.initUI()
+        QApplication.processEvents()
 
     def initUI(self):
         self._firstStart = True
         self._lastAns = ""
+        self._lastAnsText = ""
         self._startPress = 0
         self._endPress = 0
         self._lastClipboard = ""
+        self._htmlTextClick = False
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        #self.setWindowFlags(Qt.FramelessWindowHint)
         self.setText("سلام\nبرنامه آماده استفاده است.")
+        self.setStyleSheet("QLabel { background-color : #151515; color : white; }");
+        self.setMargin(5)
+        self.setWordWrap(True)
         self.setFont(QFont("IRANSansWeb", 11))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("Translator.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
@@ -76,7 +82,7 @@ class My_App(QLabel):
     
     def databack(self, clipboard_content):
         #global last_ans
-        if (("http" not in clipboard_content) | (".com" not in clipboard_content)) & (self._lastAns != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 1) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (len(clipboard_content) < 20))):
+        if (("http" not in clipboard_content) | (".com" not in clipboard_content)) & (self._lastAns != clipboard_content) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 1) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (len(clipboard_content) < 20))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
             n = clipboard_content.count(".")
             ind = 0
@@ -84,59 +90,56 @@ class My_App(QLabel):
                 ind = clipboard_content.find(".", ind + 2)
                 if not(clipboard_content[ind - 1:ind + 2].replace('.','').isdigit()):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
-            try:
-                ans = translator.translate(clipboard_content,dest='fa')
-                self._lastClipboard = clipboard_content
-                alltrans = ans.extra_data['all-translations']
-                define = ans.extra_data['definitions']
-                s = ""
-            
-                if alltrans is not None:
-                    for i in range(len(alltrans)):
-                        cashAll = ""
-                        cash = ""
-                        c = 0
-                        s += alltrans[i][0] + '\n'
-                        for j in range(len(alltrans[i][2])):
-                            cashAll += alltrans[i][2][j][0] + ' - '
-                            if alltrans[i][2][j][1][0] == clipboard_content:
-                                cash += alltrans[i][2][j][0] + ' - '
-                                c +=1
-                        if c > 0:
-                            s += cash[0:-3] + '\n'
-                            cash = ""
+            tryCount = 0
+            condition = True
+            self._htmlTextClick = False
+            while condition:
+                try:
+                    ans = translator.translate(clipboard_content,dest='fa')
+                    self._lastClipboard = clipboard_content
+                    alltrans = ans.extra_data['all-translations']
+                    define = ans.extra_data['definitions']
+                    s = ""
+                    s = ""
+                    if alltrans is not None:
+                        for i in range(len(alltrans)):
                             cashAll = ""
-                        if c == 0:
-                            s += cashAll[0:-3] + '\n'
-                            cashAll = ""         
-                else:
-                    s += ans.text + '\n'
-                if define is not None:
-                    for i in range(len(define)):
-                        for j in range(len(define[i][1])):
-                            s += define[i][1][j][0] + '\n'
-            
-                copy_ans = s
-                # add newline to adjustSize limitation
-                ind1 = 0
-                ind2 = -1
-                rP = 0 #place for replace
-                L = len(s)
-                while (L > 100) & (L - ind1 > 80):
-                    ind2 = s.find('\n',ind1 + 1)
-                    if ind2 - ind1 > 80:
-                        rP = s.find(' ', ind1 + 70, ind1 + 90)
-                        s = s[:rP] + '\n ' + s[rP + 1:]
-                        ind1 = rP
+                            cash = ""
+                            c = 0
+                            s += '<div style="text-align:left;" style="color:#F50057">' + alltrans[i][0] + '</div>'
+                            for j in range(len(alltrans[i][2])):
+                                cashAll += alltrans[i][2][j][0] + ' - '
+                                if alltrans[i][2][j][1][0] == clipboard_content:
+                                    cash += alltrans[i][2][j][0] + ' - '
+                                    c +=1
+                            if c > 0:
+                                s += '<div>' + cash[0:-3] + '</div>'
+                                cash = ""
+                                cashAll = ""
+                            if c == 0:
+                                s += '<div>' + cashAll[0:-3] + '</div>'
+                                cashAll = ""         
                     else:
-                        ind1 = ind2
+                        s += '<div style="text-align:right;">' + ans.text + '</div>'
+                    if define is not None:
+                        for i in range(len(define)):
+                            for j in range(len(define[i][1])):
+                                s += '<div style="text-align:left;" style="color:#FFC107">' + define[i][1][j][0] + '</div>'
+                                s += '<div style="text-align:left;" style="color:#C6FF00"><em>"' + define[i][1][j][2] + '"</em></div>'
             
-                self._lastAns = copy_ans
-                self.setText(s)
-                self.adjustSize()
-            except:
-                self.setText("Error in Connection! Try Again.\nIf your connection to the internet is good and the problem has been persisted for some time.\nYour access to the Google Translate may be blocked. Rerun the App or change your IP.")
-                self.adjustSize()
+                    self._lastAns = s
+                    self._lastAnsText = self._lastAns.replace('<div style="text-align:left;" style="color:#F50057">','').replace('<div>', '').replace('<div style="text-align:right;">', '').replace('<div style="text-align:left;" style="color:#FFC107">', '').replace('<div style="text-align:left;" style="color:#C6FF00"><em>"', '').replace('"</em></div>', '\n').replace('</div>', '\n')
+                    self.setText(s)
+                    self.adjustSize()
+                    condition = False
+                except Exception as e:
+                    time.sleep(2)
+                    tryCount = tryCount + 1
+                    self.setText("Error in Connection! I tried Again for " + str(tryCount) + ".\nIf your connection to the internet is good.\nYour access to the Google Translate may be blocked. Rerun the App or change your IP.")
+                    self.adjustSize()
+                    QApplication.processEvents()
+                    if tryCount > 2:
+                        condition = False
         else:
             self._firstStart = False
     
@@ -158,10 +161,17 @@ class My_App(QLabel):
         self.timer.stop()
         if event.button() == Qt.LeftButton:
             if (self._heldTime > 0.4) & (self._heldTime < 1.2):
-                pyperclip.copy(self._lastAns)
+                if self._htmlTextClick == True:
+                    pyperclip.copy(self._lastAns.replace('<div style="text-align:left;" style="color:#F50057">','').replace('<div>', '').replace('<div style="text-align:right;">', '').replace('<div style="text-align:left;" style="color:#FFC107">', '').replace('<div style="text-align:left;" style="color:#C6FF00"><em>"', '').replace('"</em></div>', '\n').replace('</div>', '\n'))
+                else:
+                    pyperclip.copy(self._lastAns)
+                self._htmlTextClick = False
+            elif self._heldTime < 0.3:
+                self._htmlTextClick = True
             self.__press_pos = QPoint()
         else:
             if (self._heldTime > 0.4) & (self._heldTime < 1.2):
+                self._htmlTextClick = False
                 pyperclip.copy(self._lastClipboard)
             elif self._heldTime < 0.3:
                 self.setText(" ")
