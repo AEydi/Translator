@@ -4,7 +4,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLabel, QStyle
 
-from PyQt5.QtCore import QThread, pyqtSignal, Qt, QPoint
+from PyQt5.QtCore import QThread, pyqtSignal, Qt, QPoint, QTimer
 import threading
 import pyperclip
 from googletrans import Translator
@@ -55,7 +55,7 @@ class My_App(QLabel):
         self.setText("سلام\nبرنامه آماده استفاده است.")
         self.setFont(QFont("IRANSansWeb", 11))
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("T.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        icon.addPixmap(QtGui.QPixmap("Translator.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
         self.adjustSize()
         self.setGeometry(
@@ -69,6 +69,9 @@ class My_App(QLabel):
         
         self.watcher = ClipboardWatcher()
         self.watcher.signal.connect(self.databack)
+        self.timer = QTimer()
+        self.timer.timeout.connect(lambda: self.mouse_event_check())
+        self._heldTime = 0
     
     
     def databack(self, clipboard_content):
@@ -147,28 +150,26 @@ class My_App(QLabel):
         self.watcher.quit()
         
     def mousePressEvent(self, event):
+        self.timer.start(50)
         if event.button() == Qt.LeftButton:
-            self._startLeftPress = time.time_ns()
             self.__press_pos = event.pos()
-        else:
-            self._startLeftPress = time.time_ns()
 
     def mouseReleaseEvent(self, event):
+        self.timer.stop()
         if event.button() == Qt.LeftButton:
-            self._endLeftPress = time.time_ns()
-            elapsedTime = self._endPress - self._startPress
-            if (elapsedTime > 400000000) & (elapsedTime < 1500000000):
+            if (self._heldTime > 0.4) & (self._heldTime < 1.2):
                 pyperclip.copy(self._lastAns)
             self.__press_pos = QPoint()
         else:
-            self._endLeftPress = time.time_ns()
-            elapsedTime = self._endPress - self._startPress
-            if (elapsedTime > 400000000) & (elapsedTime < 1500000000):
+            if (self._heldTime > 0.4) & (self._heldTime < 1.2):
                 pyperclip.copy(self._lastClipboard)
-            elif elapsedTime < 300000000:
+            elif self._heldTime < 0.3:
                 self.setText(" ")
                 self.adjustSize()
-
+        self._heldTime = 0
+    
+    def mouse_event_check(self):
+        self._heldTime += 0.05
 
     def mouseMoveEvent(self, event):
         if not self.__press_pos.isNull():  
