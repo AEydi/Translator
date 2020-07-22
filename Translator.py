@@ -11,8 +11,6 @@ from googletrans import Translator
 import time
 
 translator = Translator()
-#ans = translator.translate('book', dest='fa')
-
 copy_answer = True
 
 class ClipboardWatcher(QThread):
@@ -90,6 +88,7 @@ class My_App(QLabel):
                 ind = clipboard_content.find(".", ind + 2)
                 if not(clipboard_content[ind - 1:ind + 2].replace('.','').isdigit()):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
+            print(clipboard_content)
             tryCount = 0
             condition = True
             self._htmlTextClick = False
@@ -106,7 +105,7 @@ class My_App(QLabel):
                             cashAll = ""
                             cash = ""
                             c = 0
-                            s += '<div style="text-align:left;" style="color:#F50057">' + alltrans[i][0] + '</div>'
+                            s += '<div style="color:#F50057">' + alltrans[i][0] + '</div>'
                             for j in range(len(alltrans[i][2])):
                                 cashAll += alltrans[i][2][j][0] + ' - '
                                 if alltrans[i][2][j][1][0] == clipboard_content:
@@ -120,7 +119,7 @@ class My_App(QLabel):
                                 s += '<div>' + cashAll[0:-3] + '</div>'
                                 cashAll = ""         
                     else:
-                        s += '<div style="text-align:right;">' + ans.text + '</div>'
+                        s += '<div>' + ans.text + '</div>'
                     if define is not None:
                         for i in range(len(define)):
                             for j in range(len(define[i][1])):
@@ -128,8 +127,8 @@ class My_App(QLabel):
                                 s += '<div style="text-align:left;" style="color:#C6FF00"><em>"' + define[i][1][j][2] + '"</em></div>'
             
                     self._lastAns = s
-                    self._lastAnsText = self._lastAns.replace('<div style="text-align:left;" style="color:#F50057">','').replace('<div>', '').replace('<div style="text-align:right;">', '').replace('<div style="text-align:left;" style="color:#FFC107">', '').replace('<div style="text-align:left;" style="color:#C6FF00"><em>"', '').replace('"</em></div>', '\n').replace('</div>', '\n')
-                    self.setText(s)
+                    self._lastAnsText = self._lastAns.replace('<div style="color:#F50057">','').replace('<div>', '').replace('<div style="text-align:left;" style="color:#FFC107">', '').replace('<div style="text-align:left;" style="color:#C6FF00"><em>"', '').replace('"</em></div>', '\n').replace('</div>', '\n')
+                    self.setText(s.replace('\n', '<br>'))
                     self.adjustSize()
                     condition = False
                 except Exception as e:
