@@ -102,24 +102,23 @@ class My_App(QLabel):
                             cash = ""
                             c = 0
                             ratio = 1/float(alltrans[i][2][0][3])
-                            s += '<div style="color:#F50057">' + alltrans[i][0] + '</div>' # اسم فعل قید و ...
+                            s += '<div><font color="#FFC107">' + alltrans[i][0] + ': </font>' # اسم فعل قید و ...
                             for j in range(len(alltrans[i][2])):
                                 if (len(alltrans[i][2][j]) == 4):
                                     if (alltrans[i][2][j][3] * ratio > 0.1):
                                         cash += alltrans[i][2][j][0] + ' - '
-                            s += '<div>' + cash[0:-3] + '</div>'
+                            s += cash[0:-3] + '</div>'
                             cash = ""
                     else:
                         s += '<div>' + ans.text + '</div>'
                     if define is not None:
                         for i in range(len(define)):
                             for j in range(len(define[i][1])):
-                                s += '<div style="text-align:left;" style="color:#FFC107">' + define[i][1][j][0] + '</div>'
+                                s += '<div style="text-align:left;" style="color:#C6FF00">' + define[i][1][j][0].capitalize() + '</div>'
                                 if len(define[i][1][j]) == 3:
-                                    s += '<div style="text-align:left;" style="color:#C6FF00"><em>"' + define[i][1][j][2] + '"</em></div>'
-            
+                                    s += '<div style="text-align:left;"><em>"' + define[i][1][j][2] + '"</em></div>'
                     self._lastAns = s
-                    self._lastAnsText = self._lastAns.replace('<div style="color:#F50057">','').replace('<div>', '').replace('<div style="text-align:left;" style="color:#FFC107">', '').replace('<div style="text-align:left;" style="color:#C6FF00"><em>"', '').replace('"</em></div>', '\n').replace('</div>', '\n')
+                    self._lastAnsText = self._lastAns.replace('<em>"','').replace('"</em>', '').replace('div', '').replace('#C6FF00"', '').replace('<font color="#FFC107">','').replace(' style="text-align:left;" style="color:','').replace('</>', '\n').replace('</font>','').replace('<>','').replace('< style="text-align:left;">','')
                     self.setText(s.replace('\n', '<br>'))
                     self.adjustSize()
                     condition = False
@@ -154,7 +153,7 @@ class My_App(QLabel):
         if event.button() == Qt.LeftButton:
             if (self._heldTime > 0.4) & (self._heldTime < 1.2):
                 if self._htmlTextClick == True:
-                    pyperclip.copy(self._lastAns.replace('<div style="text-align:left;" style="color:#F50057">','').replace('<div>', '').replace('<div style="text-align:right;">', '').replace('<div style="text-align:left;" style="color:#FFC107">', '').replace('<div style="text-align:left;" style="color:#C6FF00"><em>"', '').replace('"</em></div>', '\n').replace('</div>', '\n'))
+                    pyperclip.copy(self._lastAnsText)
                 else:
                     pyperclip.copy(self._lastAns)
                 self._htmlTextClick = False
