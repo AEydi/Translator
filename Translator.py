@@ -24,8 +24,9 @@ class ClipboardWatcher(QThread):
         while not self._stopping:
             tmp_value = pyperclip.paste()
             if tmp_value != recent_value:
-                recent_value = tmp_value
-                self.signal.emit(recent_value)
+                if tmp_value != 'aaa vvv dsf':
+                    recent_value = tmp_value
+                self.signal.emit(tmp_value)
             time.sleep(self._pause)
 
     def stop(self):
@@ -48,6 +49,8 @@ class My_App(QLabel):
         self._lastAnsText = ""
         self._startPress = 0
         self._endPress = 0
+        self._src = 'en'
+        self._cash = ''
         self._lastClipboard = ""
         self._htmlTextClick = False
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
@@ -77,7 +80,6 @@ class My_App(QLabel):
     
     
     def databack(self, clipboard_content):
-        #global last_ans
         if (("http" not in clipboard_content) | (".com" not in clipboard_content)) & (self._lastClipboard != clipboard_content) & (self._lastAns != clipboard_content) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 1) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (len(clipboard_content) < 20))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
             n = clipboard_content.count(".")
@@ -91,7 +93,10 @@ class My_App(QLabel):
             self._htmlTextClick = False
             while condition:
                 try:
-                    ans = translator.translate(clipboard_content, dest='fa')
+                    if clipboard_content == 'aaa vvv dsf': # key for update lang
+                        clipboard_content = self._cash
+                        pyperclip.copy(clipboard_content)
+                    ans = translator.translate(clipboard_content, dest='fa', src=self._src)
                     self._lastClipboard = clipboard_content
                     alltrans = ans.extra_data['all-translations']
                     define = ans.extra_data['definitions']
@@ -169,6 +174,13 @@ class My_App(QLabel):
             elif self._heldTime < 0.3:
                 self.setText(" ")
                 self.adjustSize()
+            elif self._heldTime > 1.5:
+                if self._src == 'en':
+                    self._src = 'auto'
+                elif self._src == 'auto':
+                    self._src = 'en'
+                self._cash = pyperclip.paste()
+                pyperclip.copy('aaa vvv dsf')
         self._heldTime = 0
     
     def mouse_event_check(self):
