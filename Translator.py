@@ -1,5 +1,4 @@
 import sys
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLabel, QStyle
@@ -9,7 +8,6 @@ import threading
 import pyperclip
 from googletrans import Translator
 import time
-
 translator = Translator()
 copy_answer = True
 
@@ -88,13 +86,12 @@ class My_App(QLabel):
                 ind = clipboard_content.find(".", ind + 2)
                 if not(clipboard_content[ind - 1:ind + 2].replace('.','').isdigit()):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
-            print(clipboard_content)
             tryCount = 0
             condition = True
             self._htmlTextClick = False
             while condition:
                 try:
-                    ans = translator.translate(clipboard_content,dest='fa')
+                    ans = translator.translate(clipboard_content, dest='fa')
                     self._lastClipboard = clipboard_content
                     alltrans = ans.extra_data['all-translations']
                     define = ans.extra_data['definitions']
@@ -102,29 +99,24 @@ class My_App(QLabel):
                     s = ""
                     if alltrans is not None:
                         for i in range(len(alltrans)):
-                            cashAll = ""
                             cash = ""
                             c = 0
-                            s += '<div style="color:#F50057">' + alltrans[i][0] + '</div>'
+                            ratio = 1/float(alltrans[i][2][0][3])
+                            s += '<div style="color:#F50057">' + alltrans[i][0] + '</div>' # اسم فعل قید و ...
                             for j in range(len(alltrans[i][2])):
-                                cashAll += alltrans[i][2][j][0] + ' - '
-                                if alltrans[i][2][j][1][0] == clipboard_content:
-                                    cash += alltrans[i][2][j][0] + ' - '
-                                    c +=1
-                            if c > 0:
-                                s += '<div>' + cash[0:-3] + '</div>'
-                                cash = ""
-                                cashAll = ""
-                            if c == 0:
-                                s += '<div>' + cashAll[0:-3] + '</div>'
-                                cashAll = ""         
+                                if (len(alltrans[i][2][j]) == 4):
+                                    if (alltrans[i][2][j][3] * ratio > 0.1):
+                                        cash += alltrans[i][2][j][0] + ' - '
+                            s += '<div>' + cash[0:-3] + '</div>'
+                            cash = ""
                     else:
                         s += '<div>' + ans.text + '</div>'
                     if define is not None:
                         for i in range(len(define)):
                             for j in range(len(define[i][1])):
                                 s += '<div style="text-align:left;" style="color:#FFC107">' + define[i][1][j][0] + '</div>'
-                                s += '<div style="text-align:left;" style="color:#C6FF00"><em>"' + define[i][1][j][2] + '"</em></div>'
+                                if len(define[i][1][j]) == 3:
+                                    s += '<div style="text-align:left;" style="color:#C6FF00"><em>"' + define[i][1][j][2] + '"</em></div>'
             
                     self._lastAns = s
                     self._lastAnsText = self._lastAns.replace('<div style="color:#F50057">','').replace('<div>', '').replace('<div style="text-align:left;" style="color:#FFC107">', '').replace('<div style="text-align:left;" style="color:#C6FF00"><em>"', '').replace('"</em></div>', '\n').replace('</div>', '\n')
@@ -132,6 +124,7 @@ class My_App(QLabel):
                     self.adjustSize()
                     condition = False
                 except Exception as e:
+                    print(e)
                     time.sleep(2)
                     tryCount = tryCount + 1
                     self.setText("Error in Connection! I tried Again for " + str(tryCount) + ".\nIf your connection to the internet is good.\nYour access to the Google Translate may be blocked. Rerun the App or change your IP.")
