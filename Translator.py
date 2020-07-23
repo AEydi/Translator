@@ -78,7 +78,7 @@ class My_App(QLabel):
     
     def databack(self, clipboard_content):
         #global last_ans
-        if (("http" not in clipboard_content) | (".com" not in clipboard_content)) & (self._lastAns != clipboard_content) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 1) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (len(clipboard_content) < 20))):
+        if (("http" not in clipboard_content) | (".com" not in clipboard_content)) & (self._lastClipboard != clipboard_content) & (self._lastAns != clipboard_content) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 1) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (len(clipboard_content) < 20))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
             n = clipboard_content.count(".")
             ind = 0
@@ -164,6 +164,8 @@ class My_App(QLabel):
             if (self._heldTime > 0.4) & (self._heldTime < 1.2):
                 self._htmlTextClick = False
                 pyperclip.copy(self._lastClipboard)
+                self.setText(self._lastAns)
+                self.adjustSize()
             elif self._heldTime < 0.3:
                 self.setText(" ")
                 self.adjustSize()
