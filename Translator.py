@@ -23,7 +23,7 @@ class ClipboardWatcher(QThread):
         recent_value = ""
         while not self._stopping:
             tmp_value = pyperclip.paste()
-            if tmp_value != recent_value:
+            if (tmp_value != recent_value) & (tmp_value != ''): # شی کپی شده متن باشد
                 if tmp_value != 'aaa vvv dsf':
                     recent_value = tmp_value
                 self.signal.emit(tmp_value)
@@ -80,7 +80,7 @@ class My_App(QLabel):
     
     
     def databack(self, clipboard_content):
-        if (("http" not in clipboard_content) | (".com" not in clipboard_content)) & (self._lastClipboard != clipboard_content) & (self._lastAns != clipboard_content) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 1) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (len(clipboard_content) < 20))):
+        if (("http" not in clipboard_content) | (".com" not in clipboard_content)) & (self._lastClipboard != clipboard_content) & ('div' not in clipboard_content) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 1) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (len(clipboard_content) < 20))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
             n = clipboard_content.count(".")
             ind = 0
@@ -119,16 +119,16 @@ class My_App(QLabel):
                     if define is not None:
                         for i in range(len(define)):
                             for j in range(len(define[i][1])):
-                                s += '<div style="text-align:left;" style="color:#C6FF00">' + define[i][1][j][0].capitalize() + '</div>'
+                                s += '<div style="text-align:left;"><font color="#C6FF00">' + define[i][1][j][0].capitalize() + '</font></div>'
                                 if len(define[i][1][j]) == 3:
                                     s += '<div style="text-align:left;"><em>"' + define[i][1][j][2] + '"</em></div>'
                     self._lastAns = s
-                    self._lastAnsText = self._lastAns.replace('<em>"','').replace('"</em>', '').replace('div', '').replace('#C6FF00"', '').replace('<font color="#FFC107">','').replace(' style="text-align:left;" style="color:','').replace('</>', '\n').replace('</font>','').replace('<>','').replace('< style="text-align:left;">','')
+                    self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#C6FF00">', '').replace('<font color="#FFC107">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
                     self.setText(s.replace('\n', '<br>'))
                     self.adjustSize()
                     condition = False
                 except Exception as e:
-                    print(e)
+                    #print(e)
                     time.sleep(2)
                     tryCount = tryCount + 1
                     self.setText("Error in Connection! I tried Again for " + str(tryCount) + ".\nIf your connection to the internet is good.\nYour access to the Google Translate may be blocked. Rerun the App or change your IP.")
@@ -160,7 +160,7 @@ class My_App(QLabel):
                 if self._htmlTextClick == True:
                     pyperclip.copy(self._lastAnsText)
                 else:
-                    pyperclip.copy(self._lastAns)
+                    pyperclip.copy(self._lastAns.replace('left','center'))
                 self._htmlTextClick = False
             elif self._heldTime < 0.3:
                 self._htmlTextClick = True
