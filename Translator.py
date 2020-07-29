@@ -54,7 +54,6 @@ class My_App(QLabel):
         self._lastClipboard = ""
         self._htmlTextClick = False
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        self.setText("سلام\nبرنامه آماده استفاده است.")
         self.setStyleSheet("QLabel { background-color : #151515; color : white; }");
         self.setMargin(5)
         self.setWordWrap(True)
@@ -62,6 +61,7 @@ class My_App(QLabel):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("Translator.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
+        self.setText('')
         self.adjustSize()
         self.setGeometry(
             QStyle.alignedRect(
@@ -138,6 +138,8 @@ class My_App(QLabel):
                         condition = False
         else:
             self._firstStart = False
+            self.setText("سلام\nبرنامه آماده استفاده است.")
+            self.adjustSize()
     
     
     def startWatcher(self):
