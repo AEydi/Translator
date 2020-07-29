@@ -168,9 +168,12 @@ class My_App(QLabel):
         else:
             if (self._heldTime > 0.4) & (self._heldTime < 1.2):
                 self._htmlTextClick = False
-                pyperclip.copy(self._lastClipboard)
-                self.setText(self._lastAns)
-                self.adjustSize()
+                if self._lastClipboard == "":
+                    self.databack(pyperclip.paste())
+                else:
+                    pyperclip.copy(self._lastClipboard)
+                    self.setText(self._lastAns)
+                    self.adjustSize()
             elif self._heldTime < 0.3:
                 self.setText(" ")
                 self.adjustSize()
