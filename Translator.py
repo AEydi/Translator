@@ -77,8 +77,7 @@ class My_App(QLabel):
         self.timer = QTimer()
         self.timer.timeout.connect(lambda: self.mouse_event_check())
         self._heldTime = 0
-    
-    
+
     def databack(self, clipboard_content):
         if (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
@@ -86,7 +85,8 @@ class My_App(QLabel):
             ind = 0
             for i in range(n):
                 ind = clipboard_content.find(".", ind + 2)
-                if not(clipboard_content[ind - 1:ind + 2].replace('.','').isdigit()):
+                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|b\.s|b\.sc|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|b\.s|b\.)',re.IGNORECASE)
+                if (FRe.search(clipboard_content[ind - 4:ind + 2]) is None):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
             tryCount = 0
             condition = True
