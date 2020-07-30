@@ -106,12 +106,17 @@ class My_App(QLabel):
                         for i in range(len(alltrans)):
                             cash = ""
                             c = 0
-                            ratio = 1/float(alltrans[i][2][0][3])
+                            if len(alltrans[i][2][0]) < 4:
+                                ratio = 1
+                            else:
+                                ratio = 1/float(alltrans[i][2][0][3])
                             s += '<div><font color="#FFC107">' + alltrans[i][0] + ': </font>' # اسم فعل قید و ...
                             for j in range(len(alltrans[i][2])):
                                 if (len(alltrans[i][2][j]) == 4):
                                     if (alltrans[i][2][j][3] * ratio > 0.1):
                                         cash += alltrans[i][2][j][0] + ' - '
+                                else:
+                                    cash += alltrans[i][2][j][0] + ' - '
                             s += cash[0:-3] + '</div>'
                             cash = ""
                     else:
