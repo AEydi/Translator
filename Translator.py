@@ -20,7 +20,7 @@ class ClipboardWatcher(QThread):
         self._stop_event = threading.Event()
 
     def run(self):
-        recent_value = ""
+        recent_value = "$%^DFrGSjnkfu64784&@# 544#$" # random word to not match in start
         while not self._stopping:
             tmp_value = pyperclip.paste()
             if tmp_value != recent_value:
