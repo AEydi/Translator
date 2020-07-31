@@ -15,15 +15,15 @@ class ClipboardWatcher(QThread):
     signal = pyqtSignal('PyQt_PyObject')
     def __init__(self):
         QThread.__init__(self)
-        self._pause = 1
+        self._pause = 0.5
         self._stopping = False
         self._stop_event = threading.Event()
 
-    def run(self):       
+    def run(self):
         recent_value = ""
         while not self._stopping:
             tmp_value = pyperclip.paste()
-            if (tmp_value != recent_value) & (tmp_value != ''): # شی کپی شده متن باشد
+            if tmp_value != recent_value:
                 if tmp_value != 'aaa vvv dsf':
                     recent_value = tmp_value
                 self.signal.emit(tmp_value)
@@ -79,7 +79,7 @@ class My_App(QLabel):
         self._heldTime = 0
 
     def databack(self, clipboard_content):
-        if (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
+        if (clipboard_content != '') & (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
             n = clipboard_content.count(".")
             ind = 0
@@ -141,7 +141,7 @@ class My_App(QLabel):
                     QApplication.processEvents()
                     if tryCount > 2:
                         condition = False
-        else:
+        elif self._firstStart == True:
             self._firstStart = False
             self.setText("سلام\nبرنامه آماده استفاده است.")
             self.adjustSize()
