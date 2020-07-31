@@ -85,7 +85,7 @@ class My_App(QLabel):
             ind = 0
             for i in range(n):
                 ind = clipboard_content.find(".", ind + 2)
-                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|b\.s|b\.sc|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|b\.s|b\.)',re.IGNORECASE)
+                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|b\.s|b\.sc|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|u\.s|b\.s|b\.)',re.IGNORECASE)
                 if (FRe.search(clipboard_content[ind - 4:ind + 2]) is None):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
             tryCount = 0
