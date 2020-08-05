@@ -54,7 +54,7 @@ class My_App(QLabel):
         self._lastClipboard = ""
         self._htmlTextClick = False
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        self.setStyleSheet("QLabel { background-color : #151515; color : white; }");
+        self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
         self.setMargin(5)
         self.setWordWrap(True)
         self.setFont(QFont("IRANSansWeb", 11))
@@ -85,7 +85,7 @@ class My_App(QLabel):
             ind = 0
             for i in range(n):
                 ind = clipboard_content.find(".", ind + 2)
-                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|b\.s|b\.sc|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|u\.s|b\.s|b\.)',re.IGNORECASE)
+                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|b\.s|i\.e|b\.sc|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|u\.s|i\.e|b\.s|b\.)',re.IGNORECASE)
                 if (FRe.search(clipboard_content[ind - 4:ind + 2]) is None):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
             tryCount = 0
@@ -105,7 +105,6 @@ class My_App(QLabel):
                     if alltrans is not None:
                         for i in range(len(alltrans)):
                             cash = ""
-                            c = 0
                             if len(alltrans[i][2][0]) < 4:
                                 ratio = 1
                             else:
@@ -163,7 +162,7 @@ class My_App(QLabel):
     def mouseReleaseEvent(self, event):
         self.timer.stop()
         if event.button() == Qt.LeftButton:
-            if (self._heldTime > 0.4) & (self._heldTime < 1.2):
+            if (self._heldTime > 0.4) & (self._heldTime < 1.5):
                 if self._htmlTextClick == True:
                     pyperclip.copy(self._lastAnsText)
                 else:
@@ -173,7 +172,7 @@ class My_App(QLabel):
                 self._htmlTextClick = True
             self.__press_pos = QPoint()
         else:
-            if (self._heldTime > 0.4) & (self._heldTime < 1.2):
+            if (self._heldTime > 0.4) & (self._heldTime < 1.5):
                 self._htmlTextClick = False
                 if self._lastClipboard == "":
                     self.databack(pyperclip.paste())
@@ -192,9 +191,14 @@ class My_App(QLabel):
                 self._cash = pyperclip.paste()
                 pyperclip.copy('aaa vvv dsf')
         self._heldTime = 0
+        self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
     
     def mouse_event_check(self):
         self._heldTime += 0.05
+        if 1.5 > self._heldTime > 0.4:
+            self.setStyleSheet("QLabel { background-color : #353535; color : white; }")
+        if self._heldTime > 1.5:
+            self.setStyleSheet("QLabel { background-color : #555555; color : white; }")
 
     def mouseMoveEvent(self, event):
         if not self.__press_pos.isNull():  
@@ -205,6 +209,7 @@ def main():
     Trans = My_App()
     Trans.show()
     Trans.startWatcher()
+    Trans.raise_()
     return app.exec_()
 
 
