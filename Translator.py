@@ -1,15 +1,55 @@
 import sys, re
+import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLabel, QStyle
-
+import genanki
+import pyttsx3
+import pyttsx3.drivers
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QPoint, QTimer
 import threading
 import pyperclip
 from googletrans import Translator
 import time
+import keyboard
+import uuid
+
 translator = Translator()
 copy_answer = True
+
+class Say(threading.Thread):
+    signal = pyqtSignal('PyQt_PyObject')
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self._stopping = False
+        self._stop_event = threading.Event()
+        self.engine = pyttsx3.init()
+        self.rate = self.engine.getProperty('rate')
+        self.engine.setProperty('rate', 150)
+        self.engine.setProperty('volume',0.9)
+        self.voices = self.engine.getProperty('voices')
+        self.engine.setProperty('voice', self.voices[1].id)
+        self.text = ''
+        self.last_text = ''
+
+    def Read(self,text):
+        self.text = text
+    def run(self):
+        while not self._stopping:
+            if (self.text != self.last_text) & (self.text != ''):
+                time.sleep(0.7)
+                self.engine.say(self.text)
+                self.engine.runAndWait()
+                self.last_text = self.text
+            time.sleep(0.5)
+
+    def stop(self):
+        self._stopping = True
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
 
 class ClipboardWatcher(QThread):
     signal = pyqtSignal('PyQt_PyObject')
@@ -63,6 +103,9 @@ class My_App(QLabel):
         self.setWindowIcon(icon)
         self.setText('')
         self.adjustSize()
+        self.desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
+        if not os.path.exists(self.desktop):
+                    os.mkdir(self.desktop)
         self.setGeometry(
             QStyle.alignedRect(
                 Qt.LeftToRight,
@@ -77,6 +120,45 @@ class My_App(QLabel):
         self.timer = QTimer()
         self.timer.timeout.connect(lambda: self.mouse_event_check())
         self._heldTime = 0
+        self.my_model = genanki.Model(
+            1380120064,
+            'pyNote',
+            fields=[
+              {'name': 'Front'},
+              {'name': 'Back'},
+              {'name': 'MyMedia'},
+            ],
+            templates=[
+              {
+                'name': 'Card 1',
+                'qfmt': '{{Front}}{{MyMedia}}',
+                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
+              },
+            ],
+            css='''
+                .card {
+                font-family: IRANSansWeb Medium;
+                font-size: 20px;
+                text-align: center;
+                color: black;
+                background-color: white;
+                }
+                .card.night_mode {
+                font-family: IRANSansWeb Medium;
+                font-size: 20px;
+                text-align: center;
+                color: white;
+                background-color: black;
+                }
+            ''')
+        self.my_deck = genanki.Deck(2054560191,'Imported')
+        self.my_package = genanki.Package(self.my_deck)
+        self.Say = Say()
+        self.Say.start()
+        self._say_word = False
+        self._say_word_count = 0
+        self._word_add = False
+
 
     def databack(self, clipboard_content):
         if (clipboard_content != '') & (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
@@ -130,6 +212,7 @@ class My_App(QLabel):
                     self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#C6FF00">', '').replace('<font color="#FFC107">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
                     self.setText(s.replace('\n', '<br>'))
                     self.adjustSize()
+                    self._word_add = True
                     condition = False
                 except Exception as e:
                     #print(e)
@@ -140,18 +223,23 @@ class My_App(QLabel):
                     QApplication.processEvents()
                     if tryCount > 2:
                         condition = False
+                if (self._say_word == True) & (not condition):
+                    self.Say.Read(self._lastClipboard)
+
         elif self._firstStart == True:
             self._firstStart = False
-            self.setText("سلام\nبرنامه آماده استفاده است.")
+            self.setText("Hi 🖐\nInstruction: 🧾\n\nDouble LeftClick: On 🔊 or Off 🔈 text to speech\nHold LeftClick: Copy answer with HTML 🎨 tags\nLeftClick and Hold LeftClick: Copy answer text\nHold LeftClick more: Auto create anki file in Desktop/Export folder 👌\nRightClick: Minimize app\nHold RightClick: Retranslate and copy your original text to clipboard\nHold RightClick more: Language detection toggle between 'Auto' or 'En' 👍")
             self.adjustSize()
-    
     
     def startWatcher(self):
         self.watcher.start()
     
     def closeEvent(self, event):
+        self.Say.stop()
         self.watcher.stop()
+        self.Say.exit()
         self.watcher.exit()
+        self.Say.quit()
         self.watcher.quit()
         
     def mousePressEvent(self, event):
@@ -168,9 +256,33 @@ class My_App(QLabel):
                 else:
                     pyperclip.copy(self._lastAns.replace('left','center'))
                 self._htmlTextClick = False
+
             elif self._heldTime < 0.3:
+                self._say_word_count += 1
+                if self._htmlTextClick == False:
+                    self._say_word_count = 1
+                if self._say_word_count == 2:
+                    if self._say_word == True:
+                        self._say_word = False
+                    else:
+                        self._say_word = True   
+                    self._say_word_count = 0
                 self._htmlTextClick = True
+
+            elif (self._heldTime > 1.5) & (self._word_add):
+                unique_filename = str(uuid.uuid4())
+                fullPath = os.path.join(self.desktop, unique_filename +".mp3")
+                print(fullPath)
+                self.Say.engine.save_to_file(self._lastClipboard, fullPath)
+                self.Say.engine.runAndWait()
+                self.my_note = genanki.Note(model=self.my_model, fields=[self._lastClipboard, self._lastAns.replace('left','center'), '[sound:'+ unique_filename + '.mp3'+']'])
+                self.my_deck.add_note(self.my_note)
+                self.my_package.media_files.append(fullPath)
+                print(unique_filename)
+                self.my_package.write_to_file(os.path.join(self.desktop, 'output.apkg'))
+                self._word_add = False
             self.__press_pos = QPoint()
+                
         else:
             if (self._heldTime > 0.4) & (self._heldTime < 1.5):
                 self._htmlTextClick = False
