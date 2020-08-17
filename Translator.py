@@ -2,7 +2,7 @@ import sys, re
 import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QApplication, QLabel, QStyle
+from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu, QAction 
 import genanki
 import pyttsx3
 import pyttsx3.drivers
@@ -13,6 +13,7 @@ from googletrans import Translator
 import time
 import keyboard
 import uuid
+import pkgutil
 
 translator = Translator()
 copy_answer = True
@@ -64,7 +65,7 @@ class ClipboardWatcher(QThread):
         while not self._stopping:
             tmp_value = pyperclip.paste()
             if tmp_value != recent_value:
-                if tmp_value != 'aaa vvv dsf':
+                if tmp_value != 'Tarjumeh @DobAreH':
                     recent_value = tmp_value
                 self.signal.emit(tmp_value)
             time.sleep(self._pause)
@@ -85,22 +86,27 @@ class My_App(QLabel):
 
     def initUI(self):
         self._firstStart = True
-        self._lastAns = ""
+        self._lastAns = " "
         self._lastAnsText = ""
-        self._startPress = 0
-        self._endPress = 0
+        self._backAns = " " # used to going backward and forward
+        self._backAnsText = "" # used to going backward and forward
+        self._lastClipboard = ""
+        self._backClipboard = "" # used to going backward and forward
         self._src = 'en'
         self._cash = ''
-        self._lastClipboard = ""
         self._htmlTextClick = False
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
         self.setMargin(5)
         self.setWordWrap(True)
         self.setFont(QFont("IRANSansWeb", 11))
+        #d = os.path.dirname(icons.__file__)
+        #data = open(os.path.join(d, 'save.png'), 'rb').read()
+        #print(data)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("Translator.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        icon.addPixmap(QtGui.QPixmap("icons/Translator.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
+        self.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
         self.setText('')
         self.adjustSize()
         self.desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
@@ -114,7 +120,6 @@ class My_App(QLabel):
                 QApplication.instance().desktop().availableGeometry()
                 )
             )
-        
         self.watcher = ClipboardWatcher()
         self.watcher.signal.connect(self.databack)
         self.timer = QTimer()
@@ -151,18 +156,105 @@ class My_App(QLabel):
                 background-color: black;
                 }
             ''')
-        self.my_deck = genanki.Deck(2054560191,'Imported')
+        self.my_deck = genanki.Deck(2054560191,'IMPORTED')
         self.my_package = genanki.Package(self.my_deck)
         self.Say = Say()
         self.Say.start()
-        self._say_word = False
+        self._say_word = False # on off text to speech
         self._say_word_count = 0
         self._word_add = False
+        self._min = False # min max
+        self._state = True # true mean in new state
+        self._allowTrans = True
+        
+        #Right click menu      
+        self.customContextMenuRequested.connect(self.contextMenuEvent) 
+
+
+    def contextMenuEvent(self, event):
+        contextMenu = QMenu(self)
+
+        transAct = contextMenu.addAction(QtGui.QIcon('icons/search.png'), "Translate")
+        backAct = contextMenu.addAction("Previous")
+        if self._state:
+            backAct.setText('Previous')
+            backAct.setIcon(QtGui.QIcon('icons/back.png'))
+        else:
+            backAct.setText('Next')
+            backAct.setIcon(QtGui.QIcon('icons/next.png'))
+
+        saveAct = contextMenu.addAction(QtGui.QIcon('icons/save.png'),"Save as Anki cards")
+        minMaxAct = contextMenu.addAction('Minimize')
+        if self._min:
+            minMaxAct.setText('Maximize')
+            minMaxAct.setIcon(QtGui.QIcon('icons/max.png'))
+        else:
+            minMaxAct.setText('Minimize')
+            minMaxAct.setIcon(QtGui.QIcon('icons/min.png'))
+        srcChangeAct = contextMenu.addAction('English')
+        if self._src == 'en':
+            srcChangeAct.setText('Auto detect Language')
+            srcChangeAct.setIcon(QtGui.QIcon('icons/auto.png'))
+        else:
+            srcChangeAct.setText('English')
+            srcChangeAct.setIcon(QtGui.QIcon('icons/en.png'))
+
+        copyAct = contextMenu.addAction(QtGui.QIcon('icons/copy.png'), "Copy without Translate")
+        htmlAct = contextMenu.addAction(QtGui.QIcon('icons/art.png'),"Copy all as HTML")
+        allCopyAct = contextMenu.addAction(QtGui.QIcon('icons/text.png'),"Copy all as Text")
+        onOffAct = contextMenu.addAction("Text To Speech")
+        quitAct = contextMenu.addAction(QtGui.QIcon('icons/power.png'), '&Exit')
+
+        if self._say_word:
+            onOffAct.setIcon(QtGui.QIcon('icons/on.png'))
+        else:
+            onOffAct.setIcon(QtGui.QIcon('icons/off.png'))
+        
+        action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+
+        # actions
+        if action == srcChangeAct:
+            if self._src == 'en':
+                self._src = 'auto'
+            else:
+                self._src = 'en'
+            pyperclip.copy('arjumeh @DobAreH')
+        if action == saveAct:
+            self.saveAnki()
+        if action == backAct:
+            self._state = not self._state
+            self._backAns, self._lastAns = self._lastAns, self._backAns
+            self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
+            self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
+            self.setText(self._lastAns)
+            if self._lastAns == ' ':
+                self._min = True
+            else:
+                self._min = False
+            self.setText(self._lastAns)
+            self.adjustSize()
+
+        if action == minMaxAct:
+            self.minmax(not self._min)
+        if action == quitAct:
+            self.close()
+        if (action == copyAct) and self.hasSelectedText:
+            self._allowTrans = False
+            pyperclip.copy(self.selectedText())
+        if action == htmlAct:
+            pyperclip.copy(self._lastAns.replace('left','center'))
+        if action == allCopyAct:
+            pyperclip.copy(self._lastAnsText)
+        if (action == transAct) and self.hasSelectedText:
+            pyperclip.copy(self.selectedText())
+        if action == onOffAct:
+            self._say_word = False if self._say_word else True
 
 
     def databack(self, clipboard_content):
-        if (clipboard_content != '') & (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
+        if (self._allowTrans) & (clipboard_content != '') & (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
+    
             n = clipboard_content.count(".")
             ind = 0
             for i in range(n):
@@ -175,10 +267,11 @@ class My_App(QLabel):
             self._htmlTextClick = False
             while condition:
                 try:
-                    if clipboard_content == 'aaa vvv dsf': # key for update lang
+                    if clipboard_content == 'Tarjumeh @DobAreH': # key for update lang
                         clipboard_content = self._cash
                         pyperclip.copy(clipboard_content)
                     ans = translator.translate(clipboard_content, dest='fa', src=self._src)
+                    self._backClipboard = self._lastClipboard
                     self._lastClipboard = clipboard_content
                     alltrans = ans.extra_data['all-translations']
                     define = ans.extra_data['definitions']
@@ -205,30 +298,38 @@ class My_App(QLabel):
                     if define is not None:
                         for i in range(len(define)):
                             for j in range(len(define[i][1])):
-                                s += '<div style="text-align:left;"><font color="#C6FF00">' + define[i][1][j][0].capitalize() + '</font></div>'
+                                s += '<div style="text-align:left;">' + define[i][1][j][0].capitalize() + '</font></div>'
                                 if len(define[i][1][j]) == 3:
-                                    s += '<div style="text-align:left;"><em>"' + define[i][1][j][2] + '"</em></div>'
+                                    s += '<div style="text-align:left;"><em><font color="#ccaca0">"' + define[i][1][j][2] + '"</font></em></div>'
+                    self._backAns = self._lastAns
                     self._lastAns = s
-                    self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#C6FF00">', '').replace('<font color="#FFC107">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
+                    self._backAnsText = self._lastAnsText
+                    self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#FFC107">', '').replace('<font color="#D7CCC8">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
                     self.setText(s.replace('\n', '<br>'))
                     self.adjustSize()
                     self._word_add = True
                     condition = False
+                    self._min = False
                 except Exception as e:
-                    #print(e)
                     time.sleep(2)
                     tryCount = tryCount + 1
-                    self.setText("Error in Connection! I tried Again for " + str(tryCount) + ".\nIf your connection to the internet is good.\nYour access to the Google Translate may be blocked. Rerun the App or change your IP.")
+                    self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
+                    self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
+                    self._backAnsText = self._lastAns
+                    self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>' + str(e) + '</div>'
+                    self.setText(self._lastAns)
                     self.adjustSize()
                     QApplication.processEvents()
                     if tryCount > 2:
                         condition = False
                 if (self._say_word == True) & (not condition):
                     self.Say.Read(self._lastClipboard)
-
-        elif self._firstStart == True:
+        self._allowTrans = True
+        self._state = True
+        if self._firstStart == True:
             self._firstStart = False
-            self.setText("Hi 🖐\nInstruction: 🧾\n\nDouble LeftClick: On 🔊 or Off 🔈 text to speech\nHold LeftClick: Copy answer with HTML 🎨 tags\nLeftClick and Hold LeftClick: Copy answer text\nHold LeftClick more: Auto create anki file in Desktop/Export folder 👌\nRightClick: Minimize app\nHold RightClick: Retranslate and copy your original text to clipboard\nHold RightClick more: Language detection toggle between 'Auto' or 'En' 👍")
+            self._lastAns = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:&nbsp;📄</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;on&nbsp;🔊&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;off&nbsp;🔈&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder&nbsp;👌🏻<br>Key&nbsp;M,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+            self.setText(self._lastAns)
             self.adjustSize()
     
     def startWatcher(self):
@@ -241,81 +342,106 @@ class My_App(QLabel):
         self.watcher.exit()
         self.Say.quit()
         self.watcher.quit()
-        
-    def mousePressEvent(self, event):
-        self.timer.start(50)
-        if event.button() == Qt.LeftButton:
-            self.__press_pos = event.pos()
-
-    def mouseReleaseEvent(self, event):
-        self.timer.stop()
-        if event.button() == Qt.LeftButton:
-            if (self._heldTime > 0.4) & (self._heldTime < 1.5):
-                if self._htmlTextClick == True:
-                    pyperclip.copy(self._lastAnsText)
-                else:
-                    pyperclip.copy(self._lastAns.replace('left','center'))
-                self._htmlTextClick = False
-
-            elif self._heldTime < 0.3:
-                self._say_word_count += 1
-                if self._htmlTextClick == False:
-                    self._say_word_count = 1
-                if self._say_word_count == 2:
-                    if self._say_word == True:
-                        self._say_word = False
-                    else:
-                        self._say_word = True   
-                    self._say_word_count = 0
-                self._htmlTextClick = True
-
-            elif (self._heldTime > 1.5) & (self._word_add):
-                unique_filename = str(uuid.uuid4())
-                fullPath = os.path.join(self.desktop, unique_filename +".mp3")
-                print(fullPath)
-                self.Say.engine.save_to_file(self._lastClipboard, fullPath)
-                self.Say.engine.runAndWait()
-                self.my_note = genanki.Note(model=self.my_model, fields=[self._lastClipboard, self._lastAns.replace('left','center'), '[sound:'+ unique_filename + '.mp3'+']'])
-                self.my_deck.add_note(self.my_note)
-                self.my_package.media_files.append(fullPath)
-                print(unique_filename)
-                self.my_package.write_to_file(os.path.join(self.desktop, 'output.apkg'))
-                self._word_add = False
-            self.__press_pos = QPoint()
-                
-        else:
-            if (self._heldTime > 0.4) & (self._heldTime < 1.5):
-                self._htmlTextClick = False
-                if self._lastClipboard == "":
-                    self.databack(pyperclip.paste())
-                else:
-                    pyperclip.copy(self._lastClipboard)
-                    self.setText(self._lastAns)
-                    self.adjustSize()
-            elif self._heldTime < 0.3:
-                self.setText(" ")
-                self.adjustSize()
-            elif self._heldTime > 1.5:
-                if self._src == 'en':
-                    self._src = 'auto'
-                elif self._src == 'auto':
-                    self._src = 'en'
-                self._cash = pyperclip.paste()
-                pyperclip.copy('aaa vvv dsf')
-        self._heldTime = 0
-        self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
     
-    def mouse_event_check(self):
-        self._heldTime += 0.05
-        if 1.5 > self._heldTime > 0.4:
-            self.setStyleSheet("QLabel { background-color : #353535; color : white; }")
-        if self._heldTime > 1.5:
-            self.setStyleSheet("QLabel { background-color : #555555; color : white; }")
+    def keyPressEvent(self, event):
+        # save auto anki card
+        if (event.key() == Qt.Key_S) & (self._lastClipboard != '') :
+            self.saveAnki()
 
-    def mouseMoveEvent(self, event):
-        if not self.__press_pos.isNull():  
-            self.move(self.pos() + (event.pos() - self.__press_pos))
+        # copy text or html file to clipboard
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_T:
+            pyperclip.copy(self._lastAnsText)
+            self.formToggle()
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_H:
+            pyperclip.copy(self._lastAns.replace('left','center'))
+            self.formToggle()
+        
+        # on or off text to speech
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_N:
+            self._say_word = True
+            self.formToggle()
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_F:
+            self._say_word = False
+            self.formToggle()
 
+        # minimize and maximize
+        if (event.key() == Qt.Key_M) or (event.key() == Qt.Key_Space):
+            self.minmax(True)
+        if event.key() == Qt.Key_X:
+            self.minmax(False)
+
+        # change source language
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_E:
+            self._src = 'en'
+            self.formToggle()
+            self._cash = pyperclip.paste()
+            pyperclip.copy('Tarjumeh @DobAreH')
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_A:
+            self._src = 'auto'
+            self.formToggle() # تغییر رنگ برای لحظه ای
+            self._cash = pyperclip.paste()
+            pyperclip.copy('Tarjumeh @DobAreH')
+        
+        if (event.key() == Qt.Key_Left) & (self._state):
+            self._state = False
+            self._backAns, self._lastAns = self._lastAns, self._backAns
+            self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
+            self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
+            self.setText(self._lastAns)
+            if self._lastAns == ' ':
+                self._min = True
+            else:
+                self._min = False
+            self.setText(self._lastAns)
+            self.adjustSize()
+
+        if (event.key() == Qt.Key_Right) & (not  self._state):
+            self._state = True
+            self._backAns, self._lastAns = self._lastAns, self._backAns
+            self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
+            self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
+            self.setText(self._lastAns)
+            if self._lastAns == ' ':
+                self._min = True
+            else:
+                self._min = False
+            self.setText(self._lastAns)
+            self.adjustSize()
+        
+        if (event.key() == Qt.Key_Up or event.key() == Qt.Key_Down) and self.hasSelectedText:
+            pyperclip.copy(self.selectedText())
+
+
+    def saveAnki(self):
+        unique_filename = str(uuid.uuid4())
+        fullPath = os.path.join(self.desktop, unique_filename +".mp3")
+        self.Say.engine.save_to_file(self._lastClipboard, fullPath)
+        self.Say.engine.runAndWait()
+        self.my_note = genanki.Note(model=self.my_model, fields=[self._lastClipboard, self._lastAns.replace('left','center'), '[sound:'+ unique_filename + '.mp3'+']'])
+        self.my_deck.add_note(self.my_note)
+        self.my_package.media_files.append(fullPath)
+        self.my_package.write_to_file(os.path.join(self.desktop, 'output.apkg'))
+        self._word_add = False
+        self.formToggle()
+        
+    def minmax(self, e):
+        self._min = e
+        if self._min:
+            self.setText(' ')
+            self.adjustSize()
+        else:
+            self.setText(self._lastAns)
+            if self._lastAns == ' ':
+                self.setText('<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:&nbsp;📄</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;on&nbsp;🔊&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;off&nbsp;🔈&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder&nbsp;👌🏻<br>Key&nbsp;M,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>')
+            self.adjustSize()
+
+    def formToggle (self):
+        self.setStyleSheet("QLabel { background-color : #353535; color : white; }")
+        QApplication.processEvents()
+        time.sleep(0.1)
+        self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
+
+        
 def main():
     app = QApplication(sys.argv)
     Trans = My_App()
