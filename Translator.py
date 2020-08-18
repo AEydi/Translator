@@ -166,6 +166,8 @@ class My_App(QLabel):
         self._min = False # min max
         self._state = True # true mean in new state
         self._allowTrans = True
+        self._trans = True
+        self._onlyTTS = False
         
         #Right click menu      
         self.customContextMenuRequested.connect(self.contextMenuEvent) 
@@ -191,6 +193,9 @@ class My_App(QLabel):
         else:
             minMaxAct.setText('Minimize')
             minMaxAct.setIcon(QtGui.QIcon('icons/min.png'))
+        
+        onOffAct = contextMenu.addAction("TurnOn Text To Speech")
+
         srcChangeAct = contextMenu.addAction('English')
         if self._src == 'en':
             srcChangeAct.setText('Auto detect Language')
@@ -202,26 +207,55 @@ class My_App(QLabel):
         copyAct = contextMenu.addAction(QtGui.QIcon('icons/copy.png'), "Copy without Translate")
         htmlAct = contextMenu.addAction(QtGui.QIcon('icons/art.png'),"Copy all as HTML")
         allCopyAct = contextMenu.addAction(QtGui.QIcon('icons/text.png'),"Copy all as Text")
-        onOffAct = contextMenu.addAction("Text To Speech")
         quitAct = contextMenu.addAction(QtGui.QIcon('icons/power.png'), '&Exit')
 
-        if self._say_word:
-            onOffAct.setIcon(QtGui.QIcon('icons/on.png'))
-        else:
-            onOffAct.setIcon(QtGui.QIcon('icons/off.png'))
+        if self._say_word & self._trans:
+            onOffAct.setIcon(QtGui.QIcon('icons/s.png'))
+            onOffAct.setText('Only Text To Speech')
+        if (not self._say_word) & self._trans:
+            onOffAct.setIcon(QtGui.QIcon('icons/st.png'))
+            onOffAct.setText('Translate + Text To Speech')
+        if self._say_word & (not self._trans):
+            onOffAct.setIcon(QtGui.QIcon('icons/t.png'))
+            onOffAct.setText('Only Translate')
         
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         # actions
-        if action == srcChangeAct:
+        print(self._trans)
+        print(self._say_word)
+        print((self._onlyTTS))
+        print('****************')
+        if action == onOffAct:
+            if self._say_word & (not self._trans):
+                self._say_word = False
+                self._trans = True
+                if self._onlyTTS:
+                        self.setText(' ')
+                        self._min = True
+                self._onlyTTS = False
+            else:
+                if (not self._say_word):
+                    self._say_word = True
+                else:
+                    self._trans = False
+                    self._onlyTTS = True
+                    self.setText('Only TTS!')
+            self.adjustSize()
+        print(self._trans)
+        print(self._say_word)
+        print((self._onlyTTS))
+        print('--------------\n')
+
+        if (action == srcChangeAct) and (not self._onlyTTS):
             if self._src == 'en':
                 self._src = 'auto'
             else:
                 self._src = 'en'
             pyperclip.copy('arjumeh @DobAreH')
-        if action == saveAct:
+        if (action == saveAct) and (not self._onlyTTS):
             self.saveAnki()
-        if action == backAct:
+        if (action == backAct) and (not self._onlyTTS):
             self._state = not self._state
             self._backAns, self._lastAns = self._lastAns, self._backAns
             self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
@@ -233,26 +267,23 @@ class My_App(QLabel):
                 self._min = False
             self.setText(self._lastAns)
             self.adjustSize()
-
-        if action == minMaxAct:
+        if (action == minMaxAct) and (not self._onlyTTS):
             self.minmax(not self._min)
         if action == quitAct:
             self.close()
-        if (action == copyAct) and self.hasSelectedText:
+        if ((action == copyAct) and self.hasSelectedText) and (not self._onlyTTS):
             self._allowTrans = False
             pyperclip.copy(self.selectedText())
-        if action == htmlAct:
+        if (action == htmlAct) and (not self._onlyTTS):
             pyperclip.copy(self._lastAns.replace('left','center'))
-        if action == allCopyAct:
+        if (action == allCopyAct) and (not self._onlyTTS):
             pyperclip.copy(self._lastAnsText)
-        if (action == transAct) and self.hasSelectedText:
+        if (action == transAct) & (self.hasSelectedText()) & (not self._onlyTTS):
             pyperclip.copy(self.selectedText())
-        if action == onOffAct:
-            self._say_word = False if self._say_word else True
 
 
     def databack(self, clipboard_content):
-        if (self._allowTrans) & (clipboard_content != '') & (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
+        if (self._allowTrans & self._trans) & (clipboard_content != '') & (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
     
             n = clipboard_content.count(".")
@@ -322,8 +353,12 @@ class My_App(QLabel):
                     QApplication.processEvents()
                     if tryCount > 2:
                         condition = False
-                if (self._say_word == True) & (not condition):
+                if self._say_word & (not condition):
                     self.Say.Read(self._lastClipboard)
+
+        if self._say_word & (not self._trans):
+            self.Say.Read(pyperclip.paste())
+
         self._allowTrans = True
         self._state = True
         if self._firstStart == True:
