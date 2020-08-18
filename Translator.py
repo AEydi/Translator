@@ -47,6 +47,7 @@ class Say(threading.Thread):
     def stop(self):
         self._stopping = True
         self._stop_event.set()
+        sys.exit()
 
     def stopped(self):
         return self._stop_event.is_set()
@@ -73,6 +74,7 @@ class ClipboardWatcher(QThread):
     def stop(self):
         self._stopping = True
         self._stop_event.set()
+        sys.exit()
 
     def stopped(self):
         return self._stop_event.is_set()
@@ -100,9 +102,6 @@ class My_App(QLabel):
         self.setMargin(5)
         self.setWordWrap(True)
         self.setFont(QFont("IRANSansWeb", 11))
-        #d = os.path.dirname(icons.__file__)
-        #data = open(os.path.join(d, 'save.png'), 'rb').read()
-        #print(data)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("icons/Translator.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
@@ -222,10 +221,6 @@ class My_App(QLabel):
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         # actions
-        print(self._trans)
-        print(self._say_word)
-        print((self._onlyTTS))
-        print('****************')
         if action == onOffAct:
             if self._say_word & (not self._trans):
                 self._say_word = False
@@ -242,10 +237,6 @@ class My_App(QLabel):
                     self._onlyTTS = True
                     self.setText('Only TTS!')
             self.adjustSize()
-        print(self._trans)
-        print(self._say_word)
-        print((self._onlyTTS))
-        print('--------------\n')
 
         if (action == srcChangeAct) and (not self._onlyTTS):
             if self._src == 'en':
@@ -371,12 +362,9 @@ class My_App(QLabel):
         self.watcher.start()
     
     def closeEvent(self, event):
+
         self.Say.stop()
         self.watcher.stop()
-        self.Say.exit()
-        self.watcher.exit()
-        self.Say.quit()
-        self.watcher.quit()
     
     def keyPressEvent(self, event):
         # save auto anki card
