@@ -14,6 +14,7 @@ import time
 import keyboard
 import uuid
 import pkgutil
+from datetime import datetime
 
 translator = Translator()
 copy_answer = True
@@ -167,6 +168,7 @@ class My_App(QLabel):
         self._allowTrans = True
         self._trans = True
         self._onlyTTS = False
+        self._initTime = datetime.now()
         
         #Right click menu      
         self.customContextMenuRequested.connect(self.contextMenuEvent) 
@@ -217,7 +219,7 @@ class My_App(QLabel):
         if self._say_word & (not self._trans):
             onOffAct.setIcon(QtGui.QIcon('icons/t.png'))
             onOffAct.setText('Only Translate')
-        
+
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         # actions
@@ -281,7 +283,7 @@ class My_App(QLabel):
             ind = 0
             for i in range(n):
                 ind = clipboard_content.find(".", ind + 2)
-                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|b\.s|i\.e|b\.sc|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|u\.s|i\.e|b\.s|b\.)',re.IGNORECASE)
+                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|b\.s|i\.e|b\.sc|e\.g|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|u\.s|i\.e|e\.g|b\.s|b\.)',re.IGNORECASE)
                 if (FRe.search(clipboard_content[ind - 4:ind + 2]) is None):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
             tryCount = 0
@@ -297,7 +299,6 @@ class My_App(QLabel):
                     self._lastClipboard = clipboard_content
                     alltrans = ans.extra_data['all-translations']
                     define = ans.extra_data['definitions']
-                    s = ""
                     s = ""
                     if alltrans is not None:
                         for i in range(len(alltrans)):
@@ -316,7 +317,10 @@ class My_App(QLabel):
                             s += cash[0:-3] + '</div>'
                             cash = ""
                     else:
-                        s += '<div>' + ans.text + '</div>'
+                        if define is not None:
+                            s = '<div><font color="#FFC107">معنی: </font>' + ans.text + '</div>'
+                        else:
+                            s += '<div>' + ans.text + '</div>'
                     if define is not None:
                         for i in range(len(define)):
                             for j in range(len(define[i][1])):
@@ -326,7 +330,7 @@ class My_App(QLabel):
                     self._backAns = self._lastAns
                     self._lastAns = s
                     self._backAnsText = self._lastAnsText
-                    self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#FFC107">', '').replace('<font color="#D7CCC8">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
+                    self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#FFC107">', '').replace('<font color="#ccaca0">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
                     self.setText(s.replace('\n', '<br>'))
                     self.adjustSize()
                     self._word_add = True
@@ -341,6 +345,7 @@ class My_App(QLabel):
                     self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>' + str(e) + '</div>'
                     self.setText(self._lastAns)
                     self.adjustSize()
+                    self._min = False
                     QApplication.processEvents()
                     if tryCount > 2:
                         condition = False
@@ -362,7 +367,6 @@ class My_App(QLabel):
         self.watcher.start()
     
     def closeEvent(self, event):
-
         self.Say.stop()
         self.watcher.stop()
     
@@ -378,6 +382,10 @@ class My_App(QLabel):
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_H:
             pyperclip.copy(self._lastAns.replace('left','center'))
             self.formToggle()
+
+        if event.key() == Qt.Key_R:
+            self.Say.last_text = ''
+            self.Say.Read(pyperclip.paste())
         
         # on or off text to speech
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_N:
@@ -443,7 +451,7 @@ class My_App(QLabel):
         self.my_note = genanki.Note(model=self.my_model, fields=[self._lastClipboard, self._lastAns.replace('left','center'), '[sound:'+ unique_filename + '.mp3'+']'])
         self.my_deck.add_note(self.my_note)
         self.my_package.media_files.append(fullPath)
-        self.my_package.write_to_file(os.path.join(self.desktop, 'output.apkg'))
+        self.my_package.write_to_file(os.path.join(self.desktop, 'output '+ str(self._initTime).replace(':','.') +'.apkg'))
         self._word_add = False
         self.formToggle()
         
