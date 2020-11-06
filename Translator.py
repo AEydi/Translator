@@ -1,3 +1,4 @@
+import platform
 import sys, re
 import os
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -29,7 +30,8 @@ class Say(threading.Thread):
         self.engine.setProperty('rate', 150)
         self.engine.setProperty('volume',0.9)
         self.voices = self.engine.getProperty('voices')
-        self.engine.setProperty('voice', self.voices[1].id)
+        if platform.system() == "Windows" and platform.release() == "10":
+            self.engine.setProperty('voice', self.voices[1].id)
         self.text = ''
         self.last_text = ''
 
@@ -100,6 +102,7 @@ class My_App(QLabel):
         self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
         self.setMargin(5)
         self.setWordWrap(True)
+        QtGui.QFontDatabase.addApplicationFont("font/IRANSansWeb.ttf")
         self.setFont(QFont("IRANSansWeb", 11))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("icons/Translator.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
@@ -165,7 +168,11 @@ class My_App(QLabel):
         self._state = True # true mean in new state
         self._allowTrans = True
         self._trans = True
-        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder&nbsp;👌🏻<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+        if platform.system() == "Windows" and platform.release() == "10":
+            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+        else:
+            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+        
         self._initTime = datetime.now()
         self.savedAnswer = []
         
@@ -297,7 +304,7 @@ class My_App(QLabel):
 
             if clipboard_content == 'TarjumehDobAreHLach': # key for update lang
                 clipboard_content = pyperclip.paste()
-            clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace(". ", ".")
+            clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace("...","*$_#").replace(". ", ".")
     
             n = clipboard_content.count(".")
             ind = 0
@@ -306,6 +313,8 @@ class My_App(QLabel):
                 FRe = re.compile(r'((prof|dr|m\.s|m\.sc|ph\.d|b\.s|i\.e|b\.sc|\.\.\.|e\.g|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|ph\.d|u\.s|i\.e|\.\.\.|e\.g|b\.s|b\.)',re.IGNORECASE)
                 if (FRe.search(clipboard_content[ind - 4:ind + 2]) is None):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
+            
+            clipboard_content = clipboard_content.replace("*$_#", "...") #dont inter enter for ...
             tryCount = 0
             condition = True #try 3 time for translate
             self._htmlTextClick = False
@@ -358,7 +367,10 @@ class My_App(QLabel):
                     self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
                     self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
                     self._backAnsText = self._lastAns
+                    print(str(e))
                     self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>' + str(e) + '</div>'
+                    if str(e) == "'NoneType' object has no attribute 'group'":
+                        self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp;a&nbsp;token&nbsp;from&nbsp;google.translate.com<br>try again or restart the App.</div>'
                     self.setText(self._lastAns)
                     self.adjustSize()
                     self._min = False
