@@ -20,6 +20,10 @@ from gtts import gTTS
 from playsound import playsound
 
 translator = Translator()
+if platform.system() == "Windows" and platform.release() == "10":
+    win10 = True
+else:
+    win10 = False
 
 class Say(threading.Thread):
     signal = pyqtSignal('PyQt_PyObject')
@@ -27,7 +31,7 @@ class Say(threading.Thread):
         threading.Thread.__init__(self)
         self._stopping = False
         self._stop_event = threading.Event()
-        if platform.system() == "Windows" and platform.release() == "10":
+        if win10:
             self.engine = pyttsx3.init()
             self.rate = self.engine.getProperty('rate')
             self.engine.setProperty('rate', 150)
@@ -37,13 +41,15 @@ class Say(threading.Thread):
         self.text = ''
         self.last_text = ''
         self.last_sound = ''
+        self.ttsEng = 'win'
+        self.ttsLang = 'en-us'
 
     def Read(self,text):
         self.text = text
     def run(self):
         while not self._stopping:
             if (self.text != self.last_text) & (self.text != ''):
-                if platform.system() == "Windows" and platform.release() == "10":
+                if win10 and self.ttsEng == 'win':
                     time.sleep(0.5)
                     self.engine.say(self.text)
                     self.engine.runAndWait()
@@ -51,7 +57,9 @@ class Say(threading.Thread):
                     if not self.text == self.last_sound:
                         if os.path.exists('file.mp3'):
                             os.remove('file.mp3')
-                        var = gTTS(text = self.text,lang = 'en-us') 
+                        if self.ttsLang == '':
+                            self.ttsLang = 'en-us'
+                        var = gTTS(text = self.text,lang = self.ttsLang) 
                         var.save('file.mp3')
                     playsound('file.mp3')
                 self.last_text = self.text
@@ -171,7 +179,19 @@ class My_App(QLabel):
                 background-color: black;
                 }
             ''')
-        self.my_deck = genanki.Deck(2054560191,'IMPORTED')
+        try:
+            fileRead = open("deckName.txt", "r")
+            self.deckName = fileRead.read()
+            fileRead.close()
+        except Exception:
+            self.deckName = 'IMPORTED'
+            try:
+                fileWrite = open('deckName.txt', "w")
+                fileWrite.write('IMPORTED')
+                fileWrite.close()
+            except Exception:
+                pass
+        self.my_deck = genanki.Deck(2054560191,self.deckName)
         self.my_package = genanki.Package(self.my_deck)
         self.Say = Say()
         self.Say.start()
@@ -182,9 +202,10 @@ class My_App(QLabel):
         self._state = True # true mean in new state
         self._allowTrans = True
         self._trans = True
-        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+        self.dest = 'fa'
+        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;Support&nbsp;En</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
         if platform.system() == "Windows" and not platform.release() == "10":
-            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;Support&nbsp;En</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
         
         self._initTime = datetime.now()
         self.savedAnswer = []
@@ -215,15 +236,52 @@ class My_App(QLabel):
             minMaxAct.setIcon(QtGui.QIcon('icons/min.png'))
         
         onOffAct = contextMenu.addAction("Translate OFF")
-        ttsOnOff = contextMenu.addAction("Text To Speech ON")
 
-        srcChangeAct = contextMenu.addAction('English')
-        if self._src == 'en':
-            srcChangeAct.setText('Auto detect Language')
-            srcChangeAct.setIcon(QtGui.QIcon('icons/auto.png'))
+        
+        ttsMenu = QMenu(contextMenu)
+        ttsMenu.setTitle('Text To Speech Options')
+        ttsOnOff = ttsMenu.addAction("Text To Speech ON")
+        contextMenu.addMenu(ttsMenu)
+        
+        if win10:
+            if self.Say.ttsEng == 'win':
+                engAct = ttsMenu.addAction('Google TTS')
+            else:
+                engAct = ttsMenu.addAction('Windows TTS')
         else:
-            srcChangeAct.setText('English')
-            srcChangeAct.setIcon(QtGui.QIcon('icons/en.png'))
+            self.Say.ttsEng = 'gtts'
+
+        srcChangeMenu = QMenu(contextMenu)
+        srcChangeMenu.setTitle('Language Options')
+        srcChangeMenu.setIcon(QtGui.QIcon('icons/lang.png'))
+        contextMenu.addMenu(srcChangeMenu)
+        langSourceMenu = QMenu(contextMenu)
+        langSourceMenu.setTitle('Source language')
+        enus = langSourceMenu.addAction("EN US")
+        enuk = langSourceMenu.addAction("EN UK")
+        auto = langSourceMenu.addAction("Auto detect")
+        Arabic = langSourceMenu.addAction("Arabic")
+        Danish = langSourceMenu.addAction("Danish")
+        German = langSourceMenu.addAction("German")
+        Spanish = langSourceMenu.addAction("Spanish")
+        French = langSourceMenu.addAction("French")
+        Italian = langSourceMenu.addAction("Italian")
+        Japanese = langSourceMenu.addAction("Japanese")
+        Korean = langSourceMenu.addAction("Korean")
+        Latin = langSourceMenu.addAction("Latin")
+        Dutch = langSourceMenu.addAction("Dutch")
+        Portuguese = langSourceMenu.addAction("Portuguese")
+        Russian = langSourceMenu.addAction("Russian")
+        Swedish = langSourceMenu.addAction("Swedish")
+        Turkish = langSourceMenu.addAction("Turkish")
+        Chinese = langSourceMenu.addAction("Chinese")
+        srcChangeMenu.addMenu(langSourceMenu)
+        langDestMenu = QMenu(contextMenu)
+        langDestMenu.setTitle('Destination language')
+        persian = langDestMenu.addAction("Persian")
+        english = langDestMenu.addAction("English")
+        srcChangeMenu.addMenu(langDestMenu)
+
         
         copyMenu = QMenu(contextMenu)
         copyMenu.setTitle('Copy')
@@ -243,31 +301,90 @@ class My_App(QLabel):
             onOffAct.setText('Translate ON')
         
         if self._sayWord:
+            ttsMenu.setIcon(QtGui.QIcon('icons/off.png'))
             ttsOnOff.setIcon(QtGui.QIcon('icons/off.png'))
             ttsOnOff.setText('Text To Speech OFF')
         if (not self._sayWord):
+            ttsMenu.setIcon(QtGui.QIcon('icons/on.png'))
             ttsOnOff.setIcon(QtGui.QIcon('icons/on.png'))
             ttsOnOff.setText('Text To Speech ON')
 
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         # actions
+        if self.Say.ttsEng == 'gtts':
+            if action == enus:
+                self._src = 'en'
+                self.Say.ttsLang = 'en-us'
+            if action == enuk:
+                self._src = 'en'
+                self.Say.ttsLang = 'en-uk'
+            if action == auto:
+                self._src = 'auto'
+                self.Say.ttsLang = ''
+            if action == Arabic:
+                self._src = 'ar'
+                self.Say.ttsLang = 'ar'
+            if action == Danish:
+                self._src = 'da'
+                self.Say.ttsLang = 'da'
+            if action == German:
+                self._src = 'de'
+                self.Say.ttsLang = 'de'
+            if action == Spanish:
+                self._src = 'es'
+                self.Say.ttsLang = 'es'
+            if action == French:
+                self._src = 'fr'
+                self.Say.ttsLang = 'fr'
+            if action == Italian:
+                self._src = 'it'
+                self.Say.ttsLang = 'it'
+            if action == Japanese:
+                self._src = 'ja'
+                self.Say.ttsLang = 'ja'
+            if action == Korean:
+                self._src = 'ko'
+                self.Say.ttsLang = 'ko'
+            if action == Latin:
+                self._src = 'la'
+                self.Say.ttsLang = 'la'
+            if action == Dutch:
+                self._src = 'nl'
+                self.Say.ttsLang = 'nl'
+            if action == Portuguese:
+                self._src = 'pt'
+                self.Say.ttsLang = 'pt'
+            if action == Russian:
+                self._src = 'ru'
+                self.Say.ttsLang = 'ru'
+            if action == Swedish:
+                self._src = 'sv'
+                self.Say.ttsLang = 'sv'
+            if action == Turkish:
+                self._src = 'tr'
+                self.Say.ttsLang = 'tr'
+            if action == Chinese:
+                self._src = 'zh-CN'
+                self.Say.ttsLang = 'zh-CN'
+
+        if action == persian:
+            self.dest = 'fa'
+        if action == english:
+            self.dest = 'en'
+        
+        if win10:
+            if action == engAct:
+                if self.Say.ttsEng == 'win':
+                    self.Say.ttsEng = 'gtts'
+                else:
+                    self.Say.ttsEng = 'win'
+
         if action == onOffAct:
             self._trans = not self._trans
         
         if action == ttsOnOff:
             self._sayWord = not self._sayWord
-
-        if action == srcChangeAct:
-            if self._src == 'en':
-                self._src = 'auto'
-            else:
-                self._src = 'en'
-            say_wordState = self._sayWord
-            self._sayWord = False
-            self._allowTrans = True
-            self.databack('TarjumehDobAreHLach')
-            self._sayWord = say_wordState
 
         if action == saveAct:
             self.saveAnki()
@@ -333,7 +450,9 @@ class My_App(QLabel):
             self._htmlTextClick = False
             while condition:
                 try:
-                    ans = translator.translate(clipboard_content, dest='fa', src=self._src)
+                    ans = translator.translate(clipboard_content, dest=self.dest, src=self._src)
+                    if self._src == 'auto':
+                        self.Say.ttsLang = ans.src
                     self._backClipboard = self._lastClipboard
                     self._lastClipboard = clipboard_content
                     alltrans = ans.extra_data['all-translations']
@@ -442,18 +561,6 @@ class My_App(QLabel):
         if event.key() == Qt.Key_X or event.key() == 1591:
             self.minmax(False)
 
-        # change source language
-        if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_E or event.key() == 1579):
-            self._src = 'en'
-            self.formToggle()
-            self._allowTrans = True
-            self.databack('TarjumehDobAreHLach')
-        if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_A or event.key() == 1588):
-            self._src = 'auto'
-            self.formToggle() # تغییر رنگ لحظه ای
-            self._allowTrans = True
-            self.databack('TarjumehDobAreHLach')
-        
         if (event.key() == Qt.Key_Left) & (self._state):
             self._state = False
             self._backAns, self._lastAns = self._lastAns, self._backAns
@@ -489,11 +596,11 @@ class My_App(QLabel):
         if self._wordAdd:
             unique_filename = str(uuid.uuid4())
             fullPath = os.path.join(self.desktop, unique_filename +".mp3")
-            if platform.system() == 'Windows' and platform.release() == '11':
+            if win10 and self.Say.ttsEng == 'win':
                 self.Say.engine.save_to_file(self._lastClipboard, fullPath)
                 self.Say.engine.runAndWait()
             else:
-                var = gTTS(text = self._lastClipboard,lang = 'en-us') 
+                var = gTTS(text = self._lastClipboard,lang = self.Say.ttsLang) 
                 var.save(fullPath)
             self.my_note = genanki.Note(model=self.my_model, fields=[self._lastClipboard, self._lastAns.replace('left','center'), '[sound:'+ unique_filename + '.mp3'+']'])
             self.my_deck.add_note(self.my_note)
