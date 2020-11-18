@@ -467,16 +467,6 @@ class My_App(QLabel):
             self.setText(self._lastAns)
             self.adjustSize()
         
-        if (event.key() == Qt.Key_Up or event.key() == Qt.Key_Down) and self.hasSelectedText:
-            if self.hasSelectedText():
-                if self.selectedText() == pyperclip.paste():
-                    self._allowTrans = True
-                    self.databack('TarjumehDobAreHLach')
-                else:
-                    pyperclip.copy(self.selectedText())
-            else:
-                self._allowTrans = True
-                self.databack('TarjumehDobAreHLach')
 
     def saveAnki(self):
         self._wordAdd = True
