@@ -110,7 +110,10 @@ class My_App(QLabel):
         self.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
         self.setText('')
         self.adjustSize()
-        self.desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
+        if platform.system() == 'Windows':
+            self.desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
+        else:
+            self.desktop = os.path.join(os.path.join(os.path.expanduser('~')),'Desktop/Export')
         if not os.path.exists(self.desktop):
                     os.mkdir(self.desktop)
         self.setGeometry(
@@ -168,9 +171,8 @@ class My_App(QLabel):
         self._state = True # true mean in new state
         self._allowTrans = True
         self._trans = True
-        if platform.system() == "Windows" and platform.release() == "10":
-            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
-        else:
+        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+        if platform.system() == "Windows" and not platform.release() == "10":
             self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N&nbsp;set&nbsp;ON&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;F&nbsp;set&nbsp;OFF&nbsp;text&nbsp;to&nbsp;speech<br>Key&nbsp;R,&nbsp;Repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;Copy&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;Copy&nbsp;answer&nbsp;text<br>Key&nbsp;S,&nbsp;Create&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;Minimize&nbsp;app&nbsp;and&nbsp;Key&nbsp;X,&nbsp;Maximize&nbsp;app<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;Toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>CTRL&nbsp;+&nbsp;A,&nbsp;set&nbsp;Language&nbsp;source&nbsp;"Auto"&nbsp;and&nbsp;CTRL&nbsp;+&nbsp;E,&nbsp;set&nbsp;that&nbsp;to&nbsp;"English"</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
         
         self._initTime = datetime.now()
