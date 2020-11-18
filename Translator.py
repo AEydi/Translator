@@ -16,6 +16,8 @@ import keyboard
 import uuid
 import pkgutil
 from datetime import datetime
+from gtts import gTTS 
+from playsound import playsound
 
 translator = Translator()
 
@@ -25,26 +27,35 @@ class Say(threading.Thread):
         threading.Thread.__init__(self)
         self._stopping = False
         self._stop_event = threading.Event()
-        self.engine = pyttsx3.init()
-        self.rate = self.engine.getProperty('rate')
-        self.engine.setProperty('rate', 150)
-        self.engine.setProperty('volume',0.9)
-        self.voices = self.engine.getProperty('voices')
         if platform.system() == "Windows" and platform.release() == "10":
+            self.engine = pyttsx3.init()
+            self.rate = self.engine.getProperty('rate')
+            self.engine.setProperty('rate', 150)
+            self.engine.setProperty('volume',0.9)
+            self.voices = self.engine.getProperty('voices')
             self.engine.setProperty('voice', self.voices[1].id)
         self.text = ''
         self.last_text = ''
+        self.last_sound = ''
 
     def Read(self,text):
         self.text = text
     def run(self):
         while not self._stopping:
             if (self.text != self.last_text) & (self.text != ''):
-                time.sleep(0.7)
-                self.engine.say(self.text)
-                self.engine.runAndWait()
+                if platform.system() == "Windows" and platform.release() == "10":
+                    time.sleep(0.5)
+                    self.engine.say(self.text)
+                    self.engine.runAndWait()
+                else:
+                    if not self.text == self.last_sound:
+                        if os.path.exists('file.mp3'):
+                            os.remove('file.mp3')
+                        var = gTTS(text = self.text,lang = 'en-us') 
+                        var.save('file.mp3')
+                    playsound('file.mp3')
                 self.last_text = self.text
-            time.sleep(0.5)
+            time.sleep(0.1)
 
     def stop(self):
         self._stopping = True
@@ -478,8 +489,12 @@ class My_App(QLabel):
         if self._wordAdd:
             unique_filename = str(uuid.uuid4())
             fullPath = os.path.join(self.desktop, unique_filename +".mp3")
-            self.Say.engine.save_to_file(self._lastClipboard, fullPath)
-            self.Say.engine.runAndWait()
+            if platform.system() == 'Windows' and platform.release() == '11':
+                self.Say.engine.save_to_file(self._lastClipboard, fullPath)
+                self.Say.engine.runAndWait()
+            else:
+                var = gTTS(text = self._lastClipboard,lang = 'en-us') 
+                var.save(fullPath)
             self.my_note = genanki.Note(model=self.my_model, fields=[self._lastClipboard, self._lastAns.replace('left','center'), '[sound:'+ unique_filename + '.mp3'+']'])
             self.my_deck.add_note(self.my_note)
             self.my_package.media_files.append(fullPath)
