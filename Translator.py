@@ -43,6 +43,17 @@ class Say(threading.Thread):
         self.last_sound = ''
         self.ttsEng = 'win'
         self.ttsLang = 'en-us'
+        self.flag = 1
+        if platform.system() == 'Windows':
+            for f in os.listdir('.\\'):
+                if not f.endswith(".mp3"):
+                    continue
+                os.remove(f)
+        else:
+            for f in os.listdir('./'):
+                if not f.endswith(".mp3"):
+                    continue
+                os.remove(f)
 
     def Read(self,text):
         self.text = text
@@ -55,13 +66,16 @@ class Say(threading.Thread):
                     self.engine.runAndWait()
                 else:
                     if not self.text == self.last_sound:
-                        if os.path.exists('file.mp3'):
-                            os.remove('file.mp3')
+                        if os.path.exists('file' + str(self.flag) + '.mp3'):
+                            os.remove('file' + str(self.flag) + '.mp3')
+                            if os.path.exists('file' + str(self.flag) + '.mp3'):
+                                self.flag = self.flag + 1
                         if self.ttsLang == '':
                             self.ttsLang = 'en-us'
                         var = gTTS(text = self.text,lang = self.ttsLang) 
-                        var.save('file.mp3')
-                    playsound('file.mp3')
+                        var.save('file' + str(self.flag) + '.mp3')
+                    playsound('file' + str(self.flag) + '.mp3')
+                    self.last_sound = self.text
                 self.last_text = self.text
             time.sleep(0.1)
 
