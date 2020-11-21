@@ -1,4 +1,4 @@
-#for macOS use: python setup.py py2app
+#for macOS use: python3 setup.py py2app
 from setuptools import setup
 APP = ['Translator.py']
 DATA_FILES = []

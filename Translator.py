@@ -59,7 +59,7 @@ class Say(threading.Thread):
         self.text = text
     def run(self):
         while not self._stopping:
-            if (self.text != self.last_text) & (self.text != ''):
+            if (self.text != self.last_text) and (self.text != '') and (self.ttsLang != 'fa'):
                 if win10 and self.ttsEng == 'win':
                     time.sleep(0.5)
                     self.engine.say(self.text)
@@ -74,7 +74,8 @@ class Say(threading.Thread):
                             self.ttsLang = 'en-us'
                         var = gTTS(text = self.text,lang = self.ttsLang) 
                         var.save('file' + str(self.flag) + '.mp3')
-                    playsound('file' + str(self.flag) + '.mp3')
+                    if os.stat('file' + str(self.flag) + '.mp3').st_size > 290:
+                        playsound('file' + str(self.flag) + '.mp3')
                     self.last_sound = self.text
                 self.last_text = self.text
             time.sleep(0.1)
@@ -216,7 +217,7 @@ class My_App(QLabel):
         self._state = True # true mean in new state
         self._allowTrans = True
         self._trans = True
-        self.dest = 'fa'
+        self._dest = 'fa'
         self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
         if platform.system() == "Windows" and not platform.release() == "10":
             self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
@@ -240,7 +241,7 @@ class My_App(QLabel):
             backAct.setText('Next')
             backAct.setIcon(QtGui.QIcon('icons/next.png'))
 
-        saveAct = contextMenu.addAction(QtGui.QIcon('icons/save.png'),"Save as Anki cards")
+        saveAct = contextMenu.addAction(QtGui.QIcon('icons/save.png'),"Save as Anki Cards")
         minMaxAct = contextMenu.addAction('Minimize')
         if self._min:
             minMaxAct.setText('Maximize')
@@ -260,40 +261,90 @@ class My_App(QLabel):
         if win10:
             if self.Say.ttsEng == 'win':
                 engAct = ttsMenu.addAction('Google TTS')
+                engAct.setIcon(QtGui.QIcon('icons/g.png'))
             else:
                 engAct = ttsMenu.addAction('Windows TTS')
+                engAct.setIcon(QtGui.QIcon('icons/w.png'))
         else:
             self.Say.ttsEng = 'gtts'
+        
+        swapAct = contextMenu.addAction(QtGui.QIcon('icons/swap.png'),"Swap Language")
 
         srcChangeMenu = QMenu(contextMenu)
         srcChangeMenu.setTitle('Language Options')
         srcChangeMenu.setIcon(QtGui.QIcon('icons/lang.png'))
         contextMenu.addMenu(srcChangeMenu)
         langSourceMenu = QMenu(contextMenu)
-        langSourceMenu.setTitle('Source language')
+        langSourceMenu.setTitle('Source Language')
+        langSourceMenu.setIcon(QtGui.QIcon('icons/source.png'))
         enus = langSourceMenu.addAction("EN US")
+        if self.Say.ttsLang == 'en-us':
+            enus.setIcon(QtGui.QIcon('icons/tick.png'))
         enuk = langSourceMenu.addAction("EN UK")
+        if self.Say.ttsLang == 'en-uk':
+            enuk.setIcon(QtGui.QIcon('icons/tick.png'))
+        Pers = langSourceMenu.addAction("Persian")
+        if self._src == 'fa':
+            Pers.setIcon(QtGui.QIcon('icons/tick.png'))
         auto = langSourceMenu.addAction("Auto detect")
+        if self._src == 'auto':
+            auto.setIcon(QtGui.QIcon('icons/tick.png'))
         Arabic = langSourceMenu.addAction("Arabic")
+        if self._src == 'ar':
+            Arabic.setIcon(QtGui.QIcon('icons/tick.png'))
         Danish = langSourceMenu.addAction("Danish")
+        if self._src == 'da':
+            Danish.setIcon(QtGui.QIcon('icons/tick.png'))
         German = langSourceMenu.addAction("German")
+        if self._src == 'de':
+            German.setIcon(QtGui.QIcon('icons/tick.png'))
         Spanish = langSourceMenu.addAction("Spanish")
+        if self._src == 'es':
+            Spanish.setIcon(QtGui.QIcon('icons/tick.png'))
         French = langSourceMenu.addAction("French")
+        if self._src == 'fr':
+            French.setIcon(QtGui.QIcon('icons/tick.png'))
         Italian = langSourceMenu.addAction("Italian")
+        if self._src == 'it':
+            Italian.setIcon(QtGui.QIcon('icons/tick.png'))
         Japanese = langSourceMenu.addAction("Japanese")
+        if self._src == 'ja':
+            Japanese.setIcon(QtGui.QIcon('icons/tick.png'))
         Korean = langSourceMenu.addAction("Korean")
+        if self._src == 'ko':
+            Korean.setIcon(QtGui.QIcon('icons/tick.png'))
         Latin = langSourceMenu.addAction("Latin")
+        if self._src == 'la':
+            Latin.setIcon(QtGui.QIcon('icons/tick.png'))
         Dutch = langSourceMenu.addAction("Dutch")
+        if self._src == 'nl':
+            Dutch.setIcon(QtGui.QIcon('icons/tick.png'))
         Portuguese = langSourceMenu.addAction("Portuguese")
+        if self._src == 'pt':
+            Portuguese.setIcon(QtGui.QIcon('icons/tick.png'))
         Russian = langSourceMenu.addAction("Russian")
+        if self._src == 'ru':
+            Russian.setIcon(QtGui.QIcon('icons/tick.png'))
         Swedish = langSourceMenu.addAction("Swedish")
+        if self._src == 'sv':
+            Swedish.setIcon(QtGui.QIcon('icons/tick.png'))
         Turkish = langSourceMenu.addAction("Turkish")
+        if self._src == 'tr':
+            Turkish.setIcon(QtGui.QIcon('icons/tick.png'))
         Chinese = langSourceMenu.addAction("Chinese")
+        if self._src == 'zh-CN':
+            Chinese.setIcon(QtGui.QIcon('icons/tick.png'))
         srcChangeMenu.addMenu(langSourceMenu)
+
         langDestMenu = QMenu(contextMenu)
-        langDestMenu.setTitle('Destination language')
+        langDestMenu.setTitle('Destination Language')
+        langDestMenu.setIcon(QtGui.QIcon('icons/dest.png'))
         persian = langDestMenu.addAction("Persian")
+        if self._dest == 'fa':
+            persian.setIcon(QtGui.QIcon('icons/tick.png'))
         english = langDestMenu.addAction("English")
+        if self._dest == 'en':
+            english.setIcon(QtGui.QIcon('icons/tick.png'))
         srcChangeMenu.addMenu(langDestMenu)
 
         
@@ -326,66 +377,75 @@ class My_App(QLabel):
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         # actions
-        if self.Say.ttsEng == 'gtts':
-            if action == enus:
-                self._src = 'en'
-                self.Say.ttsLang = 'en-us'
-            if action == enuk:
-                self._src = 'en'
-                self.Say.ttsLang = 'en-uk'
-            if action == auto:
-                self._src = 'auto'
-                self.Say.ttsLang = ''
-            if action == Arabic:
-                self._src = 'ar'
-                self.Say.ttsLang = 'ar'
-            if action == Danish:
-                self._src = 'da'
-                self.Say.ttsLang = 'da'
-            if action == German:
-                self._src = 'de'
-                self.Say.ttsLang = 'de'
-            if action == Spanish:
-                self._src = 'es'
-                self.Say.ttsLang = 'es'
-            if action == French:
-                self._src = 'fr'
-                self.Say.ttsLang = 'fr'
-            if action == Italian:
-                self._src = 'it'
-                self.Say.ttsLang = 'it'
-            if action == Japanese:
-                self._src = 'ja'
-                self.Say.ttsLang = 'ja'
-            if action == Korean:
-                self._src = 'ko'
-                self.Say.ttsLang = 'ko'
-            if action == Latin:
-                self._src = 'la'
-                self.Say.ttsLang = 'la'
-            if action == Dutch:
-                self._src = 'nl'
-                self.Say.ttsLang = 'nl'
-            if action == Portuguese:
-                self._src = 'pt'
-                self.Say.ttsLang = 'pt'
-            if action == Russian:
-                self._src = 'ru'
-                self.Say.ttsLang = 'ru'
-            if action == Swedish:
-                self._src = 'sv'
-                self.Say.ttsLang = 'sv'
-            if action == Turkish:
-                self._src = 'tr'
-                self.Say.ttsLang = 'tr'
-            if action == Chinese:
-                self._src = 'zh-CN'
-                self.Say.ttsLang = 'zh-CN'
+        if action == swapAct:
+            if self._src != 'auto':
+                self._src, self._dest = self._dest, self._src
+                self.Say.ttsLang = self._src
+                if self._src == 'en':
+                    self.Say.ttsLang = 'en-us'
+
+        if action == enus:
+            self._src = 'en'
+            self.Say.ttsLang = 'en-us'
+        if action == enuk:
+            self._src = 'en'
+            self.Say.ttsLang = 'en-uk'
+        if action == Pers:
+            self._src = 'fa'
+            self.Say.ttsLang = 'fa'
+        if action == auto:
+            self._src = 'auto'
+            self.Say.ttsLang = ''
+        if action == Arabic:
+            self._src = 'ar'
+            self.Say.ttsLang = 'ar'
+        if action == Danish:
+            self._src = 'da'
+            self.Say.ttsLang = 'da'
+        if action == German:
+            self._src = 'de'
+            self.Say.ttsLang = 'de'
+        if action == Spanish:
+            self._src = 'es'
+            self.Say.ttsLang = 'es'
+        if action == French:
+            self._src = 'fr'
+            self.Say.ttsLang = 'fr'
+        if action == Italian:
+            self._src = 'it'
+            self.Say.ttsLang = 'it'
+        if action == Japanese:
+            self._src = 'ja'
+            self.Say.ttsLang = 'ja'
+        if action == Korean:
+            self._src = 'ko'
+            self.Say.ttsLang = 'ko'
+        if action == Latin:
+            self._src = 'la'
+            self.Say.ttsLang = 'la'
+        if action == Dutch:
+            self._src = 'nl'
+            self.Say.ttsLang = 'nl'
+        if action == Portuguese:
+            self._src = 'pt'
+            self.Say.ttsLang = 'pt'
+        if action == Russian:
+            self._src = 'ru'
+            self.Say.ttsLang = 'ru'
+        if action == Swedish:
+            self._src = 'sv'
+            self.Say.ttsLang = 'sv'
+        if action == Turkish:
+            self._src = 'tr'
+            self.Say.ttsLang = 'tr'
+        if action == Chinese:
+            self._src = 'zh-CN'
+            self.Say.ttsLang = 'zh-CN'
 
         if action == persian:
-            self.dest = 'fa'
+            self._dest = 'fa'
         if action == english:
-            self.dest = 'en'
+            self._dest = 'en'
         
         if win10:
             if action == engAct:
@@ -464,7 +524,7 @@ class My_App(QLabel):
             self._htmlTextClick = False
             while condition:
                 try:
-                    ans = translator.translate(clipboard_content, dest=self.dest, src=self._src)
+                    ans = translator.translate(clipboard_content, dest=self._dest, src=self._src)
                     if self._src == 'auto':
                         self.Say.ttsLang = ans.src
                     self._backClipboard = self._lastClipboard
@@ -490,7 +550,10 @@ class My_App(QLabel):
                             cash = ""
                     else:
                         if define is not None:
-                            s = '<div><font color="#FFC107">معنی: </font>' + ans.text + '</div>'
+                            if self._dest == 'fa':
+                                s = '<div><font color="#FFC107">معنی: </font>' + ans.text + '</div>'
+                            if self._dest == 'en':
+                                s = '<div><font color="#FFC107">Meaning: </font>' + ans.text + '</div>'
                         else:
                             s += '<div>' + ans.text + '</div>'
                     if define is not None:
