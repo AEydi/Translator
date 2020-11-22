@@ -16,7 +16,7 @@ import keyboard
 import uuid
 import pkgutil
 from datetime import datetime
-from gtts import gTTS 
+from gtts import gTTS
 from playsound import playsound
 
 translator = Translator()
@@ -206,6 +206,18 @@ class My_App(QLabel):
                 fileWrite.close()
             except Exception:
                 pass
+        try:
+            fileRead = open("color.txt", "r")
+            self._color = fileRead.read()
+            fileRead.close()
+        except Exception:
+            self._color = 'd'
+            try:
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('d')
+                fileWrite.close()
+            except Exception:
+                pass
         self.my_deck = genanki.Deck(2054560191,self.deckName)
         self.my_package = genanki.Package(self.my_deck)
         self.Say = Say()
@@ -218,9 +230,9 @@ class My_App(QLabel):
         self._allowTrans = True
         self._trans = True
         self._dest = 'fa'
-        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En<br>To change the icons color, press the key B(Brown), C(Cyan), O(Orange), I(Indigo), P(Pink), T(Teal) three times.</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
         if platform.system() == "Windows" and not platform.release() == "10":
-            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En<br>To change the icons color, press the key B(Brown), C(Cyan), O(Orange), I(Indigo), P(Pink), T(Teal) three times.</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
         
         self._initTime = datetime.now()
         self.savedAnswer = []
@@ -232,23 +244,23 @@ class My_App(QLabel):
     def contextMenuEvent(self, event):
         contextMenu = QMenu(self)
 
-        transAct = contextMenu.addAction(QtGui.QIcon('icons/search.png'), "Translate")
+        transAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/search.png'), "Translate")
         backAct = contextMenu.addAction("Previous")
         if self._state:
             backAct.setText('Previous')
-            backAct.setIcon(QtGui.QIcon('icons/back.png'))
+            backAct.setIcon(QtGui.QIcon('icons/' + self._color + '/back.png'))
         else:
             backAct.setText('Next')
-            backAct.setIcon(QtGui.QIcon('icons/next.png'))
+            backAct.setIcon(QtGui.QIcon('icons/' + self._color + '/next.png'))
 
-        saveAct = contextMenu.addAction(QtGui.QIcon('icons/save.png'),"Save as Anki Cards")
+        saveAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/save.png'),"Save as Anki Cards")
         minMaxAct = contextMenu.addAction('Minimize')
         if self._min:
             minMaxAct.setText('Maximize')
-            minMaxAct.setIcon(QtGui.QIcon('icons/max.png'))
+            minMaxAct.setIcon(QtGui.QIcon('icons/' + self._color + '/max.png'))
         else:
             minMaxAct.setText('Minimize')
-            minMaxAct.setIcon(QtGui.QIcon('icons/min.png'))
+            minMaxAct.setIcon(QtGui.QIcon('icons/' + self._color + '/min.png'))
         
         onOffAct = contextMenu.addAction("Translate OFF")
 
@@ -261,117 +273,117 @@ class My_App(QLabel):
         if win10:
             if self.Say.ttsEng == 'win':
                 engAct = ttsMenu.addAction('Google TTS')
-                engAct.setIcon(QtGui.QIcon('icons/g.png'))
+                engAct.setIcon(QtGui.QIcon('icons/' + self._color + '/g.png'))
             else:
                 engAct = ttsMenu.addAction('Windows TTS')
-                engAct.setIcon(QtGui.QIcon('icons/w.png'))
+                engAct.setIcon(QtGui.QIcon('icons/' + self._color + '/w.png'))
         else:
             self.Say.ttsEng = 'gtts'
         
-        swapAct = contextMenu.addAction(QtGui.QIcon('icons/swap.png'),"Swap Language")
+        swapAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/swap.png'),"Swap Language")
 
         srcChangeMenu = QMenu(contextMenu)
         srcChangeMenu.setTitle('Language Options')
-        srcChangeMenu.setIcon(QtGui.QIcon('icons/lang.png'))
+        srcChangeMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/lang.png'))
         contextMenu.addMenu(srcChangeMenu)
         langSourceMenu = QMenu(contextMenu)
         langSourceMenu.setTitle('Source Language')
-        langSourceMenu.setIcon(QtGui.QIcon('icons/source.png'))
+        langSourceMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/source.png'))
         enus = langSourceMenu.addAction("EN US")
         if self.Say.ttsLang == 'en-us':
-            enus.setIcon(QtGui.QIcon('icons/tick.png'))
+            enus.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         enuk = langSourceMenu.addAction("EN UK")
         if self.Say.ttsLang == 'en-uk':
-            enuk.setIcon(QtGui.QIcon('icons/tick.png'))
+            enuk.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Pers = langSourceMenu.addAction("Persian")
         if self._src == 'fa':
-            Pers.setIcon(QtGui.QIcon('icons/tick.png'))
+            Pers.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         auto = langSourceMenu.addAction("Auto detect")
         if self._src == 'auto':
-            auto.setIcon(QtGui.QIcon('icons/tick.png'))
+            auto.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Arabic = langSourceMenu.addAction("Arabic")
         if self._src == 'ar':
-            Arabic.setIcon(QtGui.QIcon('icons/tick.png'))
+            Arabic.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Danish = langSourceMenu.addAction("Danish")
         if self._src == 'da':
-            Danish.setIcon(QtGui.QIcon('icons/tick.png'))
+            Danish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         German = langSourceMenu.addAction("German")
         if self._src == 'de':
-            German.setIcon(QtGui.QIcon('icons/tick.png'))
+            German.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Spanish = langSourceMenu.addAction("Spanish")
         if self._src == 'es':
-            Spanish.setIcon(QtGui.QIcon('icons/tick.png'))
+            Spanish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         French = langSourceMenu.addAction("French")
         if self._src == 'fr':
-            French.setIcon(QtGui.QIcon('icons/tick.png'))
+            French.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Italian = langSourceMenu.addAction("Italian")
         if self._src == 'it':
-            Italian.setIcon(QtGui.QIcon('icons/tick.png'))
+            Italian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Japanese = langSourceMenu.addAction("Japanese")
         if self._src == 'ja':
-            Japanese.setIcon(QtGui.QIcon('icons/tick.png'))
+            Japanese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Korean = langSourceMenu.addAction("Korean")
         if self._src == 'ko':
-            Korean.setIcon(QtGui.QIcon('icons/tick.png'))
+            Korean.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Latin = langSourceMenu.addAction("Latin")
         if self._src == 'la':
-            Latin.setIcon(QtGui.QIcon('icons/tick.png'))
+            Latin.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Dutch = langSourceMenu.addAction("Dutch")
         if self._src == 'nl':
-            Dutch.setIcon(QtGui.QIcon('icons/tick.png'))
+            Dutch.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Portuguese = langSourceMenu.addAction("Portuguese")
         if self._src == 'pt':
-            Portuguese.setIcon(QtGui.QIcon('icons/tick.png'))
+            Portuguese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Russian = langSourceMenu.addAction("Russian")
         if self._src == 'ru':
-            Russian.setIcon(QtGui.QIcon('icons/tick.png'))
+            Russian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Swedish = langSourceMenu.addAction("Swedish")
         if self._src == 'sv':
-            Swedish.setIcon(QtGui.QIcon('icons/tick.png'))
+            Swedish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Turkish = langSourceMenu.addAction("Turkish")
         if self._src == 'tr':
-            Turkish.setIcon(QtGui.QIcon('icons/tick.png'))
+            Turkish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         Chinese = langSourceMenu.addAction("Chinese")
         if self._src == 'zh-CN':
-            Chinese.setIcon(QtGui.QIcon('icons/tick.png'))
+            Chinese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         srcChangeMenu.addMenu(langSourceMenu)
 
         langDestMenu = QMenu(contextMenu)
         langDestMenu.setTitle('Destination Language')
-        langDestMenu.setIcon(QtGui.QIcon('icons/dest.png'))
+        langDestMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/dest.png'))
         persian = langDestMenu.addAction("Persian")
         if self._dest == 'fa':
-            persian.setIcon(QtGui.QIcon('icons/tick.png'))
+            persian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         english = langDestMenu.addAction("English")
         if self._dest == 'en':
-            english.setIcon(QtGui.QIcon('icons/tick.png'))
+            english.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         srcChangeMenu.addMenu(langDestMenu)
 
         
         copyMenu = QMenu(contextMenu)
         copyMenu.setTitle('Copy')
-        copyMenu.setIcon(QtGui.QIcon('icons/copy.png'))
-        copyAct = copyMenu.addAction(QtGui.QIcon('icons/copy.png'), "Copy without Translate")
-        htmlAct = copyMenu.addAction(QtGui.QIcon('icons/art.png'),"Copy all as HTML")
-        allCopyAct = copyMenu.addAction(QtGui.QIcon('icons/text.png'),"Copy all as Text")
+        copyMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/copy.png'))
+        copyAct = copyMenu.addAction(QtGui.QIcon('icons/' + self._color + '/copy.png'), "Copy without Translate")
+        htmlAct = copyMenu.addAction(QtGui.QIcon('icons/' + self._color + '/art.png'),"Copy all as HTML")
+        allCopyAct = copyMenu.addAction(QtGui.QIcon('icons/' + self._color + '/text.png'),"Copy all as Text")
         contextMenu.addMenu(copyMenu)
 
-        quitAct = contextMenu.addAction(QtGui.QIcon('icons/power.png'), '&Exit')
+        quitAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/power.png'), '&Exit')
 
         if self._trans:
-            onOffAct.setIcon(QtGui.QIcon('icons/s.png'))
+            onOffAct.setIcon(QtGui.QIcon('icons/' + self._color + '/s.png'))
             onOffAct.setText('Translate OFF')
         if not self._trans:
-            onOffAct.setIcon(QtGui.QIcon('icons/st.png'))
+            onOffAct.setIcon(QtGui.QIcon('icons/' + self._color + '/st.png'))
             onOffAct.setText('Translate ON')
         
         if self._sayWord:
-            ttsMenu.setIcon(QtGui.QIcon('icons/off.png'))
-            ttsOnOff.setIcon(QtGui.QIcon('icons/off.png'))
+            ttsMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
+            ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
             ttsOnOff.setText('Text To Speech OFF')
         if (not self._sayWord):
-            ttsMenu.setIcon(QtGui.QIcon('icons/on.png'))
-            ttsOnOff.setIcon(QtGui.QIcon('icons/on.png'))
+            ttsMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
+            ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
             ttsOnOff.setText('Text To Speech ON')
 
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
@@ -609,6 +621,64 @@ class My_App(QLabel):
     
     def keyPressEvent(self, event):
         # save auto anki card
+        print(event.key())
+        if event.key() == Qt.Key_B or event.key() == 1584:
+            try:
+                self._color = 'b'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('b')
+                fileWrite.close()
+            except Exception:
+                pass
+        if event.key() == Qt.Key_C or event.key() == 1586:
+            try:
+                self._color = 'c'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('c')
+                fileWrite.close()
+            except Exception:
+                pass
+        if event.key() == Qt.Key_O or event.key() == 1582:
+            try:
+                self._color = 'o'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('o')
+                fileWrite.close()
+            except Exception:
+                pass
+        if event.key() == Qt.Key_I or event.key() == 1607:
+            try:
+                self._color = 'i'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('i')
+                fileWrite.close()
+            except Exception:
+                pass
+        if event.key() == Qt.Key_P or event.key() == 1581:
+            try:
+                self._color = 'p'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('p')
+                fileWrite.close()
+            except Exception:
+                pass
+        if event.key() == Qt.Key_T or event.key() == 1601:
+            try:
+                self._color = 't'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('t')
+                fileWrite.close()
+            except Exception:
+                pass
+        if event.key() == Qt.Key_D or event.key() == 1740:
+            try:
+                self._color = 'd'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('d')
+                fileWrite.close()
+            except Exception:
+                pass
+
         if (event.key() == Qt.Key_S or event.key() == 1587) & (self._lastClipboard != '') :
             self.saveAnki()
 
