@@ -61,7 +61,7 @@ class Say(threading.Thread):
     def run(self):
         while not self._stopping:
             if (self.text != self.last_text) and (self.text != '') and (self.ttsLang != 'fa'):
-                if win10 and self.ttsEng == 'win':
+                if win10 and self.ttsEng == 'win' and self.ttsLang == 'en-us':
                     time.sleep(0.5)
                     self.engine.say(self.text)
                     self.engine.runAndWait()
@@ -238,7 +238,7 @@ class My_App(QLabel):
         
         self._initTime = datetime.now()
         self.savedAnswer = []
-        self.spell = SpellChecker(distance=3)
+        self.spell = SpellChecker(distance=2)
         self.spellcandidate = []
         self.zero = 1
         self.spellState = False
@@ -268,20 +268,38 @@ class My_App(QLabel):
             minMaxAct.setIcon(QtGui.QIcon('icons/' + self._color + '/min.png'))
         
         onOffAct = contextMenu.addAction("Translate OFF")
-        
-        ttsMenu = QMenu(contextMenu)
-        ttsMenu.setTitle('Text To Speech Options')
-        ttsOnOff = ttsMenu.addAction("Text To Speech ON")
-        contextMenu.addMenu(ttsMenu)
-        
-        if win10:
-            if self.Say.ttsEng == 'win':
-                engAct = ttsMenu.addAction('Google TTS')
-                engAct.setIcon(QtGui.QIcon('icons/' + self._color + '/g.png'))
+
+        if self.Say.ttsLang == 'en-us':
+            ttsMenu = QMenu(contextMenu)
+            ttsMenu.setTitle('Text To Speech Options')
+            ttsOnOff = ttsMenu.addAction("Text To Speech ON")
+            contextMenu.addMenu(ttsMenu)
+            if self._sayWord:
+                ttsMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
+                ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
+                ttsOnOff.setText('Text To Speech OFF')
+            if not self._sayWord:
+                ttsMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
+                ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
+                ttsOnOff.setText('Text To Speech ON')
+
+            if win10 and self.Say.ttsLang == 'en-us':
+                if self.Say.ttsEng == 'win':
+                    engAct = ttsMenu.addAction('Google TTS')
+                    engAct.setIcon(QtGui.QIcon('icons/' + self._color + '/g.png'))
+                else:
+                    engAct = ttsMenu.addAction('Windows TTS')
+                    engAct.setIcon(QtGui.QIcon('icons/' + self._color + '/w.png'))
             else:
-                engAct = ttsMenu.addAction('Windows TTS')
-                engAct.setIcon(QtGui.QIcon('icons/' + self._color + '/w.png'))
+                self.Say.ttsEng = 'gtts'
         else:
+            ttsOnOff = contextMenu.addAction("Text To Speech ON")
+            if self._sayWord:
+                ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
+                ttsOnOff.setText('Text To Speech OFF')
+            if not self._sayWord:
+                ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
+                ttsOnOff.setText('Text To Speech ON')
             self.Say.ttsEng = 'gtts'
         
         swapAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/swap.png'),"Swap Language")
@@ -380,24 +398,22 @@ class My_App(QLabel):
         if not self._trans:
             onOffAct.setIcon(QtGui.QIcon('icons/' + self._color + '/st.png'))
             onOffAct.setText('Translate ON')
-        
-        if self._sayWord:
-            ttsMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
-            ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
-            ttsOnOff.setText('Text To Speech OFF')
-        if (not self._sayWord):
-            ttsMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
-            ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
-            ttsOnOff.setText('Text To Speech ON')
 
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         # actions
+        if win10 and self.Say.ttsLang == 'en-us':
+            if action == engAct:
+                if self.Say.ttsEng == 'win':
+                    self.Say.ttsEng = 'gtts'
+                else:
+                    self.Say.ttsEng = 'win'
+
         if action == swapAct:
             if self._src != 'auto':
                 self._src, self._dest = self._dest, self._src
-                self.Say.ttsLang = self._src
                 self.Say.last_sound = ''
+                self.Say.ttsLang = self._src
                 if self._src == 'en':
                     self.Say.ttsLang = 'en-us'
 
@@ -482,13 +498,6 @@ class My_App(QLabel):
         if action == english:
             self._dest = 'en'
         
-        if win10:
-            if action == engAct:
-                if self.Say.ttsEng == 'win':
-                    self.Say.ttsEng = 'gtts'
-                else:
-                    self.Say.ttsEng = 'win'
-
         if action == onOffAct:
             self._trans = not self._trans
         
@@ -553,7 +562,9 @@ class My_App(QLabel):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
             
             clipboard_content = clipboard_content.replace("*$_#", "...") #dont inter enter for ...
-            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src == 'en') and self.zero:
+            if self._src in ['en','de','es','fr','pt']:
+                self.spell = SpellChecker(language=self._src, distance=2)
+            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src in ['en','de','es','fr','pt']) and self.zero:
                 candidateWords = list(self.spell.candidates(clipboard_content))
                 candidateDic = {candidateWords[i]: self.spell.word_probability(candidateWords[i]) for i in range(len(candidateWords))}
                 sortedItem = sorted(candidateDic.items(), key=lambda item: item[1], reverse=True)
