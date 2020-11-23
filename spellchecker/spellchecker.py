@@ -53,6 +53,10 @@ class SpellChecker(object):
             filename = "{}.json.gz".format(language.lower())
             here = os.path.dirname(__file__)
             full_filename = os.path.join(here, "resources", filename)
+            if '.zip' in full_filename:
+                s = full_filename.split('/')
+                su = [string for string in s if '.zip' in string]
+                full_filename = full_filename.replace(su[len(su)-1] + '/spellchecker/','')
             if not os.path.exists(full_filename):
                 msg = (
                     "The provided dictionary language ({}) does not " "exist!"
