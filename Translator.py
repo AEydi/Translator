@@ -18,6 +18,7 @@ import pkgutil
 from datetime import datetime
 from gtts import gTTS
 from playsound import playsound
+from spellchecker import SpellChecker
 
 translator = Translator()
 if platform.system() == "Windows" and platform.release() == "10":
@@ -226,17 +227,21 @@ class My_App(QLabel):
         self._sayWordCount = 0
         self._wordAdd = False
         self._min = False # min max
-        self._state = True # true mean in new state
+        self._state = True # true mean in state new
         self._allowTrans = True
         self._trans = True
         self._dest = 'fa'
-        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En<br>To change the icons color, press the key B(Brown), C(Cyan), O(Orange), I(Indigo), P(Pink), T(Teal) three times.</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+        self._instruction = '<div><font style="font-size:13pt">Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En<br>To change the icons color, press the key B(brown), C(cyan), D(default), O(orange), I(indigo), P(pink), T(teal) three times.</font></div>'
+        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻</font></div><div><font style="font-size:10pt">Press&nbsp;H&nbsp;to&nbsp;Show&nbsp;Instruction</font></div><div><font style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div>'
         if platform.system() == "Windows" and not platform.release() == "10":
-            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)<br>Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En<br>To change the icons color, press the key B(Brown), C(Cyan), O(Orange), I(Indigo), P(Pink), T(Teal) three times.</font></div><div><font style="font-size:9pt"><br>Email:&nbsp;abdollah.eydi@gmail.com</font></div>'
+            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)</font></div><div><font style="font-size:10pt">Press&nbsp;H&nbsp;to&nbsp;Show&nbsp;Instruction</font></div><div><font style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div>'
         
         self._initTime = datetime.now()
         self.savedAnswer = []
-        
+        self.spell = SpellChecker(distance=3)
+        self.spellcandidate = []
+        self.zero = 1
+        self.spellState = False
         #Right click menu
         self.customContextMenuRequested.connect(self.contextMenuEvent) 
 
@@ -263,7 +268,6 @@ class My_App(QLabel):
             minMaxAct.setIcon(QtGui.QIcon('icons/' + self._color + '/min.png'))
         
         onOffAct = contextMenu.addAction("Translate OFF")
-
         
         ttsMenu = QMenu(contextMenu)
         ttsMenu.setTitle('Text To Speech Options')
@@ -393,66 +397,85 @@ class My_App(QLabel):
             if self._src != 'auto':
                 self._src, self._dest = self._dest, self._src
                 self.Say.ttsLang = self._src
+                self.Say.last_sound = ''
                 if self._src == 'en':
                     self.Say.ttsLang = 'en-us'
 
         if action == enus:
             self._src = 'en'
             self.Say.ttsLang = 'en-us'
+            self.Say.last_sound = ''
         if action == enuk:
             self._src = 'en'
             self.Say.ttsLang = 'en-uk'
+            self.Say.last_sound = ''
         if action == Pers:
             self._src = 'fa'
             self.Say.ttsLang = 'fa'
+            self.Say.last_sound = ''
         if action == auto:
             self._src = 'auto'
             self.Say.ttsLang = ''
         if action == Arabic:
             self._src = 'ar'
             self.Say.ttsLang = 'ar'
+            self.Say.last_sound = ''
         if action == Danish:
             self._src = 'da'
             self.Say.ttsLang = 'da'
+            self.Say.last_sound = ''
         if action == German:
             self._src = 'de'
             self.Say.ttsLang = 'de'
+            self.Say.last_sound = ''
         if action == Spanish:
             self._src = 'es'
             self.Say.ttsLang = 'es'
+            self.Say.last_sound = ''
         if action == French:
             self._src = 'fr'
             self.Say.ttsLang = 'fr'
+            self.Say.last_sound = ''
         if action == Italian:
             self._src = 'it'
             self.Say.ttsLang = 'it'
+            self.Say.last_sound = ''
         if action == Japanese:
             self._src = 'ja'
             self.Say.ttsLang = 'ja'
+            self.Say.last_sound = ''
         if action == Korean:
             self._src = 'ko'
             self.Say.ttsLang = 'ko'
+            self.Say.last_sound = ''
         if action == Latin:
             self._src = 'la'
             self.Say.ttsLang = 'la'
+            self.Say.last_sound = ''
         if action == Dutch:
             self._src = 'nl'
             self.Say.ttsLang = 'nl'
+            self.Say.last_sound = ''
         if action == Portuguese:
             self._src = 'pt'
             self.Say.ttsLang = 'pt'
+            self.Say.last_sound = ''
         if action == Russian:
             self._src = 'ru'
             self.Say.ttsLang = 'ru'
+            self.Say.last_sound = ''
         if action == Swedish:
             self._src = 'sv'
             self.Say.ttsLang = 'sv'
+            self.Say.last_sound = ''
         if action == Turkish:
             self._src = 'tr'
             self.Say.ttsLang = 'tr'
+            self.Say.last_sound = ''
         if action == Chinese:
             self._src = 'zh-CN'
             self.Say.ttsLang = 'zh-CN'
+            self.Say.last_sound = ''
 
         if action == persian:
             self._dest = 'fa'
@@ -480,7 +503,6 @@ class My_App(QLabel):
             self._backAns, self._lastAns = self._lastAns, self._backAns
             self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
             self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
-            self.setText(self._lastAns)
             if self._lastAns == ' ':
                 self._min = True
             else:
@@ -516,12 +538,12 @@ class My_App(QLabel):
                 self.databack('TarjumehDobAreHLach')
 
     def databack(self, clipboard_content):
+        self.spellState = False
         if (self._allowTrans & self._trans) & (clipboard_content != '') & (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
 
             if clipboard_content == 'TarjumehDobAreHLach': # key for update lang
                 clipboard_content = pyperclip.paste()
             clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace("...","*$_#").replace(". ", ".")
-    
             n = clipboard_content.count(".")
             ind = 0
             for i in range(n):
@@ -531,75 +553,96 @@ class My_App(QLabel):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
             
             clipboard_content = clipboard_content.replace("*$_#", "...") #dont inter enter for ...
-            tryCount = 0
-            condition = True #try 3 time for translate
-            self._htmlTextClick = False
-            while condition:
-                try:
-                    ans = translator.translate(clipboard_content, dest=self._dest, src=self._src)
-                    if self._src == 'auto':
-                        self.Say.ttsLang = ans.src
-                    self._backClipboard = self._lastClipboard
-                    self._lastClipboard = clipboard_content
-                    alltrans = ans.extra_data['all-translations']
-                    define = ans.extra_data['definitions']
-                    s = ""
-                    if alltrans is not None:
-                        for i in range(len(alltrans)):
-                            cash = ""
-                            if len(alltrans[i][2][0]) < 4:
-                                ratio = 1
-                            else:
-                                ratio = 1/float(alltrans[i][2][0][3])
-                            s += '<div><font color="#FFC107">' + alltrans[i][0] + ': </font>' # اسم فعل قید و ...
-                            for j in range(len(alltrans[i][2])):
-                                if (len(alltrans[i][2][j]) == 4):
-                                    if (alltrans[i][2][j][3] * ratio > 0.1):
-                                        cash += alltrans[i][2][j][0] + ' - '
+            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src == 'en') and self.zero:
+                candidateWords = list(self.spell.candidates(clipboard_content))
+                candidateDic = {candidateWords[i]: self.spell.word_probability(candidateWords[i]) for i in range(len(candidateWords))}
+                sortedItem = sorted(candidateDic.items(), key=lambda item: item[1], reverse=True)
+                self.spellcandidate.clear()
+                for i in range(min(6,len(sortedItem))):
+                    self.spellcandidate.append(sortedItem[i][0])
+                message = '<div>I&nbsp;think&nbsp;<font color="#FFC107">' + clipboard_content + '</font>&nbsp;not&nbsp;correct,&nbsp;if&nbsp;I’m&nbsp;wrong&nbsp;press&nbsp;0&nbsp;or&nbsp;select&nbsp;one:<br></div><div>'
+                for i in range(len(self.spellcandidate)):
+                    message = message + str(i+1) + ':&nbsp;' + self.spellcandidate[i]
+                    if (i + 1) != len(self.spellcandidate):
+                        message = message + ', '
+                message = message + '</div>'
+                self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
+                self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
+                self._backAnsText = self._lastAns
+                self._lastAns = message
+                self.setText(self._lastAns)
+                self.adjustSize()
+                self.spellState = True
+            else:
+                self.zero = 1
+                tryCount = 0
+                condition = True #try 3 time for translate
+                self._htmlTextClick = False
+                while condition:
+                    try:
+                        ans = translator.translate(clipboard_content, dest=self._dest, src=self._src)
+                        if self._src == 'auto':
+                            self.Say.ttsLang = ans.src
+                        self._backClipboard = self._lastClipboard
+                        self._lastClipboard = clipboard_content
+                        alltrans = ans.extra_data['all-translations']
+                        define = ans.extra_data['definitions']
+                        s = ""
+                        if alltrans is not None:
+                            for i in range(len(alltrans)):
+                                cash = ""
+                                if len(alltrans[i][2][0]) < 4:
+                                    ratio = 1
                                 else:
-                                    cash += alltrans[i][2][j][0] + ' - '
-                            s += cash[0:-3] + '</div>'
-                            cash = ""
-                    else:
-                        if define is not None:
-                            if self._dest == 'fa':
-                                s = '<div><font color="#FFC107">معنی: </font>' + ans.text + '</div>'
-                            if self._dest == 'en':
-                                s = '<div><font color="#FFC107">Meaning: </font>' + ans.text + '</div>'
+                                    ratio = 1/float(alltrans[i][2][0][3])
+                                s += '<div><font color="#FFC107">' + alltrans[i][0] + ': </font>' # اسم فعل قید و ...
+                                for j in range(len(alltrans[i][2])):
+                                    if (len(alltrans[i][2][j]) == 4):
+                                        if (alltrans[i][2][j][3] * ratio > 0.1):
+                                            cash += alltrans[i][2][j][0] + ' - '
+                                    else:
+                                        cash += alltrans[i][2][j][0] + ' - '
+                                s += cash[0:-3] + '</div>'
+                                cash = ""
                         else:
-                            s += '<div>' + ans.text + '</div>'
-                    if define is not None:
-                        for i in range(len(define)):
-                            for j in range(len(define[i][1])):
-                                s += '<div style="text-align:left;">' + define[i][1][j][0].capitalize() + '</font></div>'
-                                if len(define[i][1][j]) == 3:
-                                    s += '<div style="text-align:left;"><em><font color="#ccaca0">"' + define[i][1][j][2] + '"</font></em></div>'
-                    self._backAns = self._lastAns
-                    self._lastAns = s
-                    self._backAnsText = self._lastAnsText
-                    self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#FFC107">', '').replace('<font color="#ccaca0">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
-                    self.setText(s.replace('\n', '<br>'))
-                    self.adjustSize()
-                    condition = False
-                    self._min = False
-                except Exception as e:
-                    time.sleep(2)
-                    tryCount = tryCount + 1
-                    self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
-                    self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
-                    self._backAnsText = self._lastAns
-                    print(str(e))
-                    self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>' + str(e) + '</div>'
-                    if str(e) == "'NoneType' object has no attribute 'group'":
-                        self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp;a&nbsp;token&nbsp;from&nbsp;google.translate.com<br>try again or restart the App.</div>'
-                    self.setText(self._lastAns)
-                    self.adjustSize()
-                    self._min = False
-                    QApplication.processEvents()
-                    if tryCount > 2:
+                            if define is not None:
+                                if self._dest == 'fa':
+                                    s = '<div><font color="#FFC107">معنی: </font>' + ans.text + '</div>'
+                                if self._dest == 'en':
+                                    s = '<div><font color="#FFC107">Meaning: </font>' + ans.text + '</div>'
+                            else:
+                                s += '<div>' + ans.text + '</div>'
+                        if define is not None:
+                            for i in range(len(define)):
+                                for j in range(len(define[i][1])):
+                                    s += '<div style="text-align:left;">' + define[i][1][j][0].capitalize() + '</font></div>'
+                                    if len(define[i][1][j]) == 3:
+                                        s += '<div style="text-align:left;"><em><font color="#ccaca0">"' + define[i][1][j][2] + '"</font></em></div>'
+                        self._backAns = self._lastAns
+                        self._lastAns = s
+                        self._backAnsText = self._lastAnsText
+                        self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#FFC107">', '').replace('<font color="#ccaca0">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
+                        self.setText(s.replace('\n', '<br>'))
+                        self.adjustSize()
                         condition = False
-                if self._sayWord & (not condition):
-                    self.Say.Read(self._lastClipboard)
+                        self._min = False
+                    except Exception as e:
+                        time.sleep(2)
+                        tryCount = tryCount + 1
+                        self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
+                        self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
+                        self._backAnsText = self._lastAns
+                        self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>' + str(e) + '</div>'
+                        if str(e) == "'NoneType' object has no attribute 'group'":
+                            self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp;a&nbsp;token&nbsp;from&nbsp;google.translate.com<br>try again or restart the App.</div>'
+                        self.setText(self._lastAns)
+                        self.adjustSize()
+                        self._min = False
+                        QApplication.processEvents()
+                        if tryCount > 2:
+                            condition = False
+                    if self._sayWord & (not condition):
+                        self.Say.Read(self._lastClipboard)
 
         if self._sayWord & (not self._trans):
             self.Say.Read(pyperclip.paste())
@@ -621,7 +664,30 @@ class My_App(QLabel):
     
     def keyPressEvent(self, event):
         # save auto anki card
-        print(event.key())
+        if self.spellState:
+            if event.key() == 48 or event.key() == 1776:
+                self.zero = 0
+                self.databack('TarjumehDobAreHLach')
+            if event.key() == 49 or event.key() == 1777:
+                pyperclip.copy(self.spellcandidate[0])
+            if event.key() == 50 or event.key() == 1778:
+                pyperclip.copy(self.spellcandidate[1])
+            if event.key() == 51 or event.key() == 1779:
+                pyperclip.copy(self.spellcandidate[2])
+            if event.key() == 52 or event.key() == 1780:
+                pyperclip.copy(self.spellcandidate[3])
+            if event.key() == 53 or event.key() == 1781:
+                pyperclip.copy(self.spellcandidate[4])
+            if event.key() == 54 or event.key() == 1782:
+                pyperclip.copy(self.spellcandidate[5])
+        
+        if (event.key() == Qt.Key_H or event.key() == 1575) and self._lastAns != self._instruction:
+            self._backAns, self._lastAns = self._lastAns, self._instruction
+            self._backAnsText, self._lastAnsText = self._lastAnsText, ''
+            self._backClipboard, self._lastClipboard = self._lastClipboard, ''
+            self.setText(self._lastAns)
+            self.adjustSize()
+
         if event.key() == Qt.Key_B or event.key() == 1584:
             try:
                 self._color = 'b'
@@ -692,7 +758,10 @@ class My_App(QLabel):
 
         if (event.key() == Qt.Key_R or event.key() == 1602):
             self.Say.last_text = ''
-            self.Say.Read(pyperclip.paste())
+            if self._trans:
+                self.Say.Read(self._lastClipboard)
+            else:
+                self.Say.Read(pyperclip.paste())
         
         # on or off text to speech
         if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_N or event.key() == 1583):
@@ -713,7 +782,6 @@ class My_App(QLabel):
             self._backAns, self._lastAns = self._lastAns, self._backAns
             self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
             self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
-            self.setText(self._lastAns)
             if self._lastAns == ' ':
                 self._min = True
             else:
@@ -726,7 +794,6 @@ class My_App(QLabel):
             self._backAns, self._lastAns = self._lastAns, self._backAns
             self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
             self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
-            self.setText(self._lastAns)
             if self._lastAns == ' ':
                 self._min = True
             else:
