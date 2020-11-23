@@ -5,5 +5,5 @@ pyi-makespec Translator.py -F --icon=Translator.ico --noconsole --hidden-import=
 pyinstaller Translator.spec<br/>
 
 <p align="center">
-  <img src="Translator.ico" width="350" title="Icon">
+  <img src="https://raw.githubusercontent.com/AEydi/Translator/master/icons/Translator.ico" width="350" title="Icon">
 </p>
