@@ -269,7 +269,7 @@ class My_App(QLabel):
         
         onOffAct = contextMenu.addAction("Translate OFF")
 
-        if self.Say.ttsLang == 'en-us':
+        if self.Say.ttsLang == 'en-us' and win10:
             ttsMenu = QMenu(contextMenu)
             ttsMenu.setTitle('Text To Speech Options')
             ttsOnOff = ttsMenu.addAction("Text To Speech ON")
