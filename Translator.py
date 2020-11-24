@@ -258,7 +258,6 @@ class My_App(QLabel):
             backAct.setText('Next')
             backAct.setIcon(QtGui.QIcon('icons/' + self._color + '/next.png'))
 
-        saveAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/save.png'),"Save as Anki Cards")
         minMaxAct = contextMenu.addAction('Minimize')
         if self._min:
             minMaxAct.setText('Maximize')
@@ -268,6 +267,8 @@ class My_App(QLabel):
             minMaxAct.setIcon(QtGui.QIcon('icons/' + self._color + '/min.png'))
         
         onOffAct = contextMenu.addAction("Translate OFF")
+        
+        saveAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/save.png'),"Save as Anki Cards")
 
         if self.Say.ttsLang == 'en-us' and win10:
             ttsMenu = QMenu(contextMenu)
@@ -556,15 +557,16 @@ class My_App(QLabel):
             n = clipboard_content.count(".")
             ind = 0
             for i in range(n):
-                ind = clipboard_content.find(".", ind + 2)
-                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|ph\.d|b\.s|i\.e|b\.sc|\.\.\.|e\.g|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|ph\.d|u\.s|i\.e|\.\.\.|e\.g|b\.s|b\.)',re.IGNORECASE)
-                if (FRe.search(clipboard_content[ind - 4:ind + 2]) is None):
+                ind = clipboard_content.find(".", ind + 1)
+
+                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|ph\.d|b\.s|i\.e|b\.sc|\.\.\.|e\.g|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|m\.s|ph\.d|u\.s|i\.e|\.\.\.|e\.g|b\.s|b\.)',re.IGNORECASE)
+                if (FRe.search(clipboard_content[(0 if ind<4 else ind-4):ind + 2]) is None):
                     clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
-            
+
             clipboard_content = clipboard_content.replace("*$_#", "...") #dont inter enter for ...
             if self._src in ['en','de','es','fr','pt']:
                 self.spell = SpellChecker(language=self._src, distance=2)
-            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src in ['en','de','es','fr','pt']) and self.zero:
+            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src in ['en','de','es','fr','pt']) and self.zero and ((clipboard_content[len(clipboard_content)-1] in ['.',',',':',';']) and (len(self.spell.known({clipboard_content[0:len(clipboard_content)-1]})) == 0)):
                 candidateWords = list(self.spell.candidates(clipboard_content))
                 candidateDic = {candidateWords[i]: self.spell.word_probability(candidateWords[i]) for i in range(len(candidateWords))}
                 sortedItem = sorted(candidateDic.items(), key=lambda item: item[1], reverse=True)
