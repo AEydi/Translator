@@ -19,6 +19,7 @@ from datetime import datetime
 from gtts import gTTS
 from playsound import playsound
 from spellchecker import SpellChecker
+import dotWords
 
 translator = Translator()
 if platform.system() == "Windows" and platform.release() == "10":
@@ -73,7 +74,7 @@ class Say(threading.Thread):
                                 self.flag = self.flag + 1
                         if self.ttsLang == '':
                             self.ttsLang = 'en-us'
-                        var = gTTS(text = self.text,lang = self.ttsLang) 
+                        var = gTTS(text = self.text,lang = self.ttsLang)
                         var.save('file' + str(self.flag) + '.mp3')
                     if os.stat('file' + str(self.flag) + '.mp3').st_size > 290:
                         playsound('file' + str(self.flag) + '.mp3')
@@ -242,6 +243,7 @@ class My_App(QLabel):
         self.spellcandidate = []
         self.zero = 1
         self.spellState = False
+        self._autoEdit = True
         #Right click menu
         self.customContextMenuRequested.connect(self.contextMenuEvent) 
 
@@ -306,7 +308,7 @@ class My_App(QLabel):
         swapAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/swap.png'),"Swap Language")
 
         srcChangeMenu = QMenu(contextMenu)
-        srcChangeMenu.setTitle('Language Options')
+        srcChangeMenu.setTitle('Options')
         srcChangeMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/lang.png'))
         contextMenu.addMenu(srcChangeMenu)
         langSourceMenu = QMenu(contextMenu)
@@ -380,8 +382,57 @@ class My_App(QLabel):
         english = langDestMenu.addAction("English")
         if self._dest == 'en':
             english.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dArabic = langDestMenu.addAction("Arabic")
+        if self._dest == 'ar':
+            dArabic.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dDanish = langDestMenu.addAction("Danish")
+        if self._dest == 'da':
+            dDanish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dGerman = langDestMenu.addAction("German")
+        if self._dest == 'de':
+            dGerman.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dSpanish = langDestMenu.addAction("Spanish")
+        if self._dest == 'es':
+            dSpanish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dFrench = langDestMenu.addAction("French")
+        if self._dest == 'fr':
+            dFrench.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dItalian = langDestMenu.addAction("Italian")
+        if self._dest == 'it':
+            dItalian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dJapanese = langDestMenu.addAction("Japanese")
+        if self._dest == 'ja':
+            dJapanese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dKorean = langDestMenu.addAction("Korean")
+        if self._dest == 'ko':
+            dKorean.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dLatin = langDestMenu.addAction("Latin")
+        if self._dest == 'la':
+            dLatin.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dDutch = langDestMenu.addAction("Dutch")
+        if self._dest == 'nl':
+            dDutch.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dPortuguese = langDestMenu.addAction("Portuguese")
+        if self._dest == 'pt':
+            dPortuguese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dRussian = langDestMenu.addAction("Russian")
+        if self._dest == 'ru':
+            dRussian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dSwedish = langDestMenu.addAction("Swedish")
+        if self._dest == 'sv':
+            dSwedish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dTurkish = langDestMenu.addAction("Turkish")
+        if self._dest == 'tr':
+            dTurkish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
+        dChinese = langDestMenu.addAction("Chinese")
+        if self._dest == 'zh-CN':
+            dChinese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
         srcChangeMenu.addMenu(langDestMenu)
 
+        if self._autoEdit:
+            autoEdit = srcChangeMenu.addAction(QtGui.QIcon('icons/' + self._color + '/ef.png'),'Auto Edit Paragraph OFF')
+        else:
+            autoEdit = srcChangeMenu.addAction(QtGui.QIcon('icons/' + self._color + '/en.png'),'Auto Edit Paragraph ON')
         
         copyMenu = QMenu(contextMenu)
         copyMenu.setTitle('Copy')
@@ -403,6 +454,8 @@ class My_App(QLabel):
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         # actions
+        if action == autoEdit:
+            self._autoEdit = not self._autoEdit
         if win10 and self.Say.ttsLang == 'en-us':
             if action == engAct:
                 if self.Say.ttsEng == 'win':
@@ -498,7 +551,37 @@ class My_App(QLabel):
             self._dest = 'fa'
         if action == english:
             self._dest = 'en'
-        
+        if action == dArabic:
+            self._dest = 'ar'
+        if action == dDanish:
+            self._dest = 'da'
+        if action == dGerman:
+            self._dest = 'de'
+        if action == dSpanish:
+            self._dest = 'es'
+        if action == dFrench:
+            self._dest = 'fr'
+        if action == dItalian:
+            self._dest = 'it'
+        if action == dJapanese:
+            self._dest = 'ja'
+        if action == dKorean:
+            self._dest = 'ko'
+        if action == dLatin:
+            self._dest = 'la'
+        if action == dDutch:
+            self._dest = 'nl'
+        if action == dPortuguese:
+            self._dest = 'pt'
+        if action == dRussian:
+            self._dest = 'ru'
+        if action == dSwedish:
+            self._dest = 'sv'
+        if action == dTurkish:
+            self._dest = 'tr'
+        if action == dChinese:
+            self._dest = 'zh-CN'
+
         if action == onOffAct:
             self._trans = not self._trans
         
@@ -549,35 +632,80 @@ class My_App(QLabel):
 
     def databack(self, clipboard_content):
         self.spellState = False
-        if (self._allowTrans & self._trans) & (clipboard_content != '') & (re.search(r'(^(https|ftp|http)://)|(^www.\w+\.)|(^\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\s|\/))',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
+        if (self._allowTrans & self._trans) & (clipboard_content != '') & (re.search(r'((^(https|ftp|http):\/\/)|(^www.\w+\.)|(^))(\w+\.)(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\/)',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
 
             if clipboard_content == 'TarjumehDobAreHLach': # key for update lang
                 clipboard_content = pyperclip.paste()
-            clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("    ", " ").replace("   ", " ").replace("  ", " ").replace("...","*$_#").replace(". ", ".")
-            n = clipboard_content.count(".")
-            ind = 0
-            for i in range(n):
-                ind = clipboard_content.find(".", ind + 1)
-
-                FRe = re.compile(r'((prof|dr|m\.s|m\.sc|ph\.d|b\.s|i\.e|b\.sc|\.\.\.|e\.g|u\.s|assoc|mr|ms|mrs|miss|mx|colcmdr|capt)(\.|\s))|((\d|\s)\.\d)|(([^\w])m\.s|m\.sc|m\.s|ph\.d|u\.s|i\.e|\.\.\.|e\.g|b\.s|b\.)',re.IGNORECASE)
-                if (FRe.search(clipboard_content[(0 if ind<4 else ind-4):ind + 2]) is None):
-                    clipboard_content = clipboard_content[:ind] + ".\n" + clipboard_content[ind + 1:]
-
-            clipboard_content = clipboard_content.replace("*$_#", "...") #dont inter enter for ...
+            clipboard_content = clipboard_content.strip()
+            if self._autoEdit:
+                clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("...","*$_#")
+                FRe = re.compile(r"((^|[^\w])([a-zA-Z]\.)+)(\w+\.|[^\w]|\w|$)|([^\w]|\d)\.\d")
+                reg1 = "(^[^\w]|^|\n)"
+                spS = re.split(r"\s",clipboard_content)
+                for i in range(len(spS)):
+                    if '.' in spS[i]:
+                        if '.' in FRe.sub("", spS[i]):
+                            if not spS[i].lower() in dotWords.words_list:
+                                spS[i] = re.sub(r"^\.+", ".\n", spS[i])
+                                c = True
+                                for k in range(len(dotWords.words_list)):
+                                    R = re.search(r"" + reg1 + dotWords.words_list[k].replace(".","\.") + "", spS[i])
+                                    if R:
+                                        R1 = re.search(r"" + reg1 + dotWords.words_list[k + 1].replace(".","\.") + "", spS[i])
+                                        if R1:
+                                            R = R1
+                                            R2 = re.search(r"" + reg1 + dotWords.words_list[k + 2].replace(".","\.") + "", spS[i])
+                                            if R2:
+                                                R = R2
+                                        q = spS[i][0:R.end()]
+                                        if R.end() < R.endpos and re.search("[a-zA-Z]",spS[i][R.end()]):
+                                            q = spS[i][0:R.end()] + " "
+                                        p = spS[i][R.end():]
+                                        U = FRe.search(p)
+                                        if U:
+                                            p = p[:U.start()].replace(".",".\n") + p[U.start():U.end()] + p[U.end():].replace(".",".\n")
+                                        else:
+                                            p = p.replace(".",".\n")
+                                        spS[i] = q + p
+                                        c = False
+                                        break
+                                    R = re.search(r"(\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3})))", spS[i])
+                                    if R:
+                                        q = spS[i][0:R.end()]
+                                        if R.end() < R.endpos and re.search("[a-zA-Z]",spS[i][R.end()]):
+                                            q = spS[i][0:R.end()] + " "
+                                        p = spS[i][R.end():]
+                                        U = FRe.search(p)
+                                        if U:
+                                            p = p[:U.start()].replace(".",".\n") + p[U.start():U.end()] + p[U.end():].replace(".",".\n")
+                                        else:
+                                            p = p.replace(".",".\n")
+                                        spS[i] = q + p
+                                        c = False
+                                        break
+                                if c:
+                                    U = FRe.search(spS[i])
+                                    if U:
+                                        spS[i] = spS[i][:U.start()].replace(".",".\n") + spS[i][U.start():U.end()] + spS[i][U.end():].replace(".",".\n")
+                                    else:
+                                        spS[i] = spS[i].replace(".",".\n")
+                
+                clipboard_content = re.sub(r'\u000D\u000A|[\u000A\u000B\u000C\u000D\u0085\u2028\u2029]', '\n', clipboard_content)
+                clipboard_content = ' '.join(map(str,spS))
+                clipboard_content = re.sub(r"(\n|^)\s+","\n",clipboard_content)
+                clipboard_content = clipboard_content.replace("*$_#", "...") #dont inter enter for ...
             if self._src in ['en','de','es','fr','pt']:
-                self.spell = SpellChecker(language=self._src, distance=2)
-            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src in ['en','de','es','fr','pt']) and self.zero and ((clipboard_content[len(clipboard_content)-1] in ['.',',',':',';']) and (len(self.spell.known({clipboard_content[0:len(clipboard_content)-1]})) == 0)):
+                self.spell = SpellChecker(language=self._src, distance=1)
+            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src in ['en','de','es','fr','pt']) and self.zero and (len(self.spell.known({clipboard_content.strip(".,:;،٬٫/")})) == 0):
                 candidateWords = list(self.spell.candidates(clipboard_content))
                 candidateDic = {candidateWords[i]: self.spell.word_probability(candidateWords[i]) for i in range(len(candidateWords))}
                 sortedItem = sorted(candidateDic.items(), key=lambda item: item[1], reverse=True)
                 self.spellcandidate.clear()
                 for i in range(min(6,len(sortedItem))):
                     self.spellcandidate.append(sortedItem[i][0])
-                message = '<div>I&nbsp;think&nbsp;<font color="#FFC107">' + clipboard_content + '</font>&nbsp;not&nbsp;correct,&nbsp;if&nbsp;I’m&nbsp;wrong&nbsp;press&nbsp;0&nbsp;or&nbsp;select&nbsp;one:<br></div><div>'
+                message = '<div>I&nbsp;think<font color="#FFC107">&nbsp;' + clipboard_content + '&nbsp;</font>not&nbsp;correct,&nbsp;if&nbsp;I’m&nbsp;wrong&nbsp;press&nbsp;0&nbsp;or&nbsp;select&nbsp;one:<br></div><div>'
                 for i in range(len(self.spellcandidate)):
-                    message = message + str(i+1) + ':&nbsp;' + self.spellcandidate[i]
-                    if (i + 1) != len(self.spellcandidate):
-                        message = message + ', '
+                    message = message + str(i+1) + ':&nbsp;' + self.spellcandidate[i] + "&nbsp;&nbsp;"
                 message = message + '</div>'
                 self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
                 self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
@@ -585,6 +713,7 @@ class My_App(QLabel):
                 self._lastAns = message
                 self.setText(self._lastAns)
                 self.adjustSize()
+                self._min = False
                 self.spellState = True
             else:
                 self.zero = 1
@@ -624,7 +753,12 @@ class My_App(QLabel):
                                 if self._dest == 'en':
                                     s = '<div><font color="#FFC107">Meaning: </font>' + ans.text + '</div>'
                             else:
-                                s += '<div>' + ans.text + '</div>'
+                                ans.text = ans.text.replace('\n', "<br>")
+                                if self._dest in ['fa', 'ar']:
+                                    print('fa')
+                                    s = '<div dir="rtl">' + ans.text + '</div>'
+                                else:
+                                    s = '<div>' + ans.text + '</div>'
                         if define is not None:
                             for i in range(len(define)):
                                 for j in range(len(define[i][1])):
@@ -634,13 +768,13 @@ class My_App(QLabel):
                         self._backAns = self._lastAns
                         self._lastAns = s
                         self._backAnsText = self._lastAnsText
-                        self._lastAnsText = self._lastAns.replace('<div style="text-align:left;">','').replace('<font color="#FFC107">', '').replace('<font color="#ccaca0">', '').replace('</font>', '').replace('<div>','').replace('</em>','').replace('</div>', '\n').replace('<em>','')
+                        self._lastAnsText = re.sub('\<.+?\>', "", self._lastAns.replace("<br>", '\n').replace('</div>', '\n'))
                         self.setText(s.replace('\n', '<br>'))
                         self.adjustSize()
                         condition = False
                         self._min = False
                     except Exception as e:
-                        time.sleep(2)
+                        time.sleep(1)
                         tryCount = tryCount + 1
                         self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
                         self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
