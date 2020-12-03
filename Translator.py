@@ -1,13 +1,12 @@
 import platform
 import sys, re
 import os
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu, QAction 
+from PyQt5 import QtGui
+from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
 import genanki
 import pyttsx3
 import pyttsx3.drivers
-from PyQt5.QtCore import QThread, pyqtSignal, Qt, QPoint, QTimer
 import threading
 import pyperclip
 from googletrans import Translator
@@ -21,44 +20,52 @@ from playsound import playsound
 from spellchecker import SpellChecker
 import dotWords
 
-translator = Translator()
 if platform.system() == "Windows" and platform.release() == "10":
     win10 = True
 else:
     win10 = False
 
-class Say(threading.Thread):
+class TTS(threading.Thread):
     signal = pyqtSignal('PyQt_PyObject')
     def __init__(self):
         threading.Thread.__init__(self)
         self._stopping = False
         self._stop_event = threading.Event()
-        if win10:
+        
+        if win10: #set win10 tts engine property
             self.engine = pyttsx3.init()
             self.rate = self.engine.getProperty('rate')
             self.engine.setProperty('rate', 150)
             self.engine.setProperty('volume',0.9)
             self.voices = self.engine.getProperty('voices')
-            self.engine.setProperty('voice', self.voices[1].id)
-        self.text = ''
-        self.last_text = ''
-        self.last_sound = ''
-        self.ttsEng = 'win'
-        self.ttsLang = 'en-us'
-        self.flag = 1
+            self.engine.setProperty('voice', self.voices[1].id) #female voice
+        
+        self.text = '' #use this var to receive text
+        
+        self.last_text = '' #var for compare text is new or not for play tts
+        
+        self.last_sound = '' #var for compare text is new or not and don't download tts again
+        
+        self.ttsEng = 'win' #var for set tts engine "win10" or "google tts"
+        
+        self.ttsLang = 'en-us' #var for set google tts language
+        
+        self.flag = 1 #this var for handel os.remove bug in win7 --> create file with new name
+        
+        #delete .mp3 file if exist in directory
         if platform.system() == 'Windows':
-            for f in os.listdir('.\\'):
-                if not f.endswith(".mp3"):
+            for file in os.listdir('.\\'):
+                if not file.endswith(".mp3"):
                     continue
-                os.remove(f)
+                os.remove(file)
         else:
-            for f in os.listdir('./'):
-                if not f.endswith(".mp3"):
+            for file in os.listdir('./'):
+                if not file.endswith(".mp3"):
                     continue
-                os.remove(f)
+                os.remove(file)
 
     def Read(self,text):
-        self.text = text
+        self.text = text #receive text for tts
     def run(self):
         while not self._stopping:
             if (self.text != self.last_text) and (self.text != '') and (self.ttsLang != 'fa'):
@@ -67,15 +74,21 @@ class Say(threading.Thread):
                     self.engine.say(self.text)
                     self.engine.runAndWait()
                 else:
-                    if not self.text == self.last_sound:
+                    if not self.text == self.last_sound: #check file exist or not
                         if os.path.exists('file' + str(self.flag) + '.mp3'):
                             os.remove('file' + str(self.flag) + '.mp3')
+
+                            #if after delete file exist in directory create file with new name
                             if os.path.exists('file' + str(self.flag) + '.mp3'):
                                 self.flag = self.flag + 1
+                        #if tts language is not set reset it to defualt
                         if self.ttsLang == '':
                             self.ttsLang = 'en-us'
+                        
                         var = gTTS(text = self.text,lang = self.ttsLang)
                         var.save('file' + str(self.flag) + '.mp3')
+                    
+                    #if created file not empty play that
                     if os.stat('file' + str(self.flag) + '.mp3').st_size > 290:
                         playsound('file' + str(self.flag) + '.mp3')
                     self.last_sound = self.text
@@ -95,7 +108,7 @@ class ClipboardWatcher(QThread):
     signal = pyqtSignal('PyQt_PyObject')
     def __init__(self):
         QThread.__init__(self)
-        self._pause = 0.5
+        self._pause = 0.5 #watch clipboard interval
         self._stopping = False
         self._stop_event = threading.Event()
 
@@ -103,6 +116,8 @@ class ClipboardWatcher(QThread):
         recent_value = "$%^DFrGSjnkfu64784&@# 544#$" # random word to not match in start
         while not self._stopping:
             tmp_value = pyperclip.paste()
+
+            #if clipboard is changed (copy new text) send that for translate
             if tmp_value != recent_value:
                 recent_value = tmp_value
                 self.signal.emit(tmp_value)
@@ -119,39 +134,21 @@ class ClipboardWatcher(QThread):
 class My_App(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__press_pos = QPoint()
         self.initUI()
         QApplication.processEvents()
 
     def initUI(self):
-        self._firstStart = True
-        self._lastAns = " "
-        self._lastAnsText = ""
-        self._backAns = " " # used to going backward and forward
-        self._backAnsText = "" # used to going backward and forward
-        self._lastClipboard = ""
-        self._backClipboard = "" # used to going backward and forward
-        self._src = 'en'
-        self._cash = ''
-        self._htmlTextClick = False
+        #UI property
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
         self.setMargin(5)
         self.setWordWrap(True)
         QtGui.QFontDatabase.addApplicationFont("font/IRANSansWeb.ttf")
-        self.setFont(QFont("IRANSansWeb", 11))
+        self.setFont(QtGui.QFont("IRANSansWeb", 11))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("icons/Translator.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
         self.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
-        self.setText('')
-        self.adjustSize()
-        if platform.system() == 'Windows':
-            self.desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
-        else:
-            self.desktop = os.path.join(os.path.join(os.path.expanduser('~')),'Desktop/Export')
-        if not os.path.exists(self.desktop):
-                    os.mkdir(self.desktop)
         self.setGeometry(
             QStyle.alignedRect(
                 Qt.LeftToRight,
@@ -160,11 +157,30 @@ class My_App(QLabel):
                 QApplication.instance().desktop().availableGeometry()
                 )
             )
-        self.watcher = ClipboardWatcher()
-        self.watcher.signal.connect(self.databack)
-        self.timer = QTimer()
-        self.timer.timeout.connect(lambda: self.mouse_event_check())
-        self._heldTime = 0
+        self._instruction = '<div><font style="font-size:10pt">Mouse&nbsp;Actions:<br>Translate->&nbsp;translate&nbsp;anything&nbsp;in&nbsp;clipboard<br>&nbsp;&nbsp;&nbsp;&nbsp;click&nbsp;on&nbsp;this,&nbsp;translate&nbsp;selected&nbsp;text&nbsp;on&nbsp;app<br>Previous/next->&nbsp;toggle&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Translate&nbsp;ON/OFF->&nbsp;toggle&nbsp;ON/OFF&nbsp;translator<br>Save&nbsp;as&nbsp;Anki&nbsp;Cards->&nbsp;create&nbsp;anki&nbsp;card&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Text&nbsp;to&nbsp;speech&nbsp;ON/OFF->&nbsp;toggle&nbsp;ON/OFF&nbsp;TTS<br>&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;win10&nbsp;you&nbsp;can&nbsp;select&nbsp;TTS&nbsp;engine&nbsp;between&nbsp;google/windows&nbsp;api<br>Swap&nbsp;Language->&nbsp;toggle&nbsp;source&nbsp;and&nbsp;destination&nbsp;Language<br>Option->&nbsp;select&nbsp;source&nbsp;and&nbsp;destination&nbsp;Language<br>&nbsp;&nbsp;&nbsp;&nbsp;Auto&nbsp;Edit&nbsp;ON/OFF->try&nbsp;to&nbsp;refine&nbsp;copied&nbsp;text<br>&nbsp;&nbsp;&nbsp;&nbsp;Icon’s&nbsp;Color->select&nbsp;icon’s&nbsp;desired&nbsp;color<br><br>Keyboard&nbsp;Actions:<br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div>'
+        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻</font></div><div><font style="font-size:10pt">Copy&nbsp;any&nbsp;text&nbsp;for&nbsp;translation<br>Press&nbsp;H&nbsp;to&nbsp;show&nbsp;Instruction</font></div><div><font style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div>'
+        if platform.system() == "Windows" and not platform.release() == "10":
+            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)</font></div><div><font style="font-size:10pt">Copy&nbsp;any&nbsp;text&nbsp;for&nbsp;translation<br>Press&nbsp;H&nbsp;to&nbsp;show&nbsp;Instruction</font></div><div><font style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div>'
+        self.setText(self.wellcomeText)
+        self.adjustSize()
+
+        self._firstStart = True
+        self._lastAnswer = self.wellcomeText
+        self._lastAnswerText = ""
+        self._previousAnswer = " " # used to going backward and forward
+        self._previousAnswerText = "" # used to going backward and forward
+        self._lastClipboard = ""
+        self._previousClipboard = "" # used to going backward and forward
+
+        #get export_Folder path in desktop
+        if platform.system() == 'Windows':
+            self.export_Folder = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
+        else:
+            self.export_Folder = os.path.join(os.path.join(os.path.expanduser('~')),'Desktop/Export')
+        if not os.path.exists(self.export_Folder):
+                    os.mkdir(self.export_Folder)
+        
+        #create anki card model
         self.my_model = genanki.Model(
             1380120064,
             'pyNote',
@@ -196,6 +212,8 @@ class My_App(QLabel):
                 background-color: black;
                 }
             ''')
+        
+        #read default deck name
         try:
             fileRead = open("deckName.txt", "r")
             self.deckName = fileRead.read()
@@ -208,6 +226,12 @@ class My_App(QLabel):
                 fileWrite.close()
             except Exception:
                 pass
+        self.my_deck = genanki.Deck(2054560191,self.deckName)
+        self.my_package = genanki.Package(self.my_deck)
+        self._initTime = datetime.now() #save deck with date name
+        self.saved_words = [] #list of previous saved word
+        
+        #read icons color
         try:
             fileRead = open("color.txt", "r")
             self._color = fileRead.read()
@@ -220,222 +244,246 @@ class My_App(QLabel):
                 fileWrite.close()
             except Exception:
                 pass
-        self.my_deck = genanki.Deck(2054560191,self.deckName)
-        self.my_package = genanki.Package(self.my_deck)
-        self.Say = Say()
-        self.Say.start()
-        self._sayWord = False # on off text to speech
-        self._sayWordCount = 0
-        self._wordAdd = False
-        self._min = False # min max
-        self._state = True # true mean in state new
-        self._allowTrans = True
-        self._trans = True
-        self._dest = 'fa'
-        self._instruction = '<div><font style="font-size:13pt">Instruction:</font><font style="font-size:11pt"><br><br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp;ON/OFF<br>Key&nbsp;R,&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En<br>To change the icons color, press the key B(brown), C(cyan), D(default), O(orange), I(indigo), P(pink), T(teal) three times.</font></div>'
-        self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻</font></div><div><font style="font-size:10pt">Press&nbsp;H&nbsp;to&nbsp;Show&nbsp;Instruction</font></div><div><font style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div>'
-        if platform.system() == "Windows" and not platform.release() == "10":
-            self.wellcomeText = '<div><font style="font-size:13pt">Hi&nbsp;:)</font></div><div><font style="font-size:10pt">Press&nbsp;H&nbsp;to&nbsp;Show&nbsp;Instruction</font></div><div><font style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div>'
         
-        self._initTime = datetime.now()
-        self.savedAnswer = []
+        self.translator = Translator() #translator object
+        self.watcher = ClipboardWatcher() 
+        self.watcher.signal.connect(self.databack)
+        self.TTS = TTS()
+        self.TTS.start()
+        self.tts_onOff_flag = False # on off text to speech
+        self._word_added = False #flag for check word added as anki card or not
+        self._min = False # min max flag
+        self._current_state = True # true mean in state new
+        self._allow_translation = True
+        self._translator_onOff = True
+
+        self._src = 'en'
+        self._dest = 'fa'
+        
+        #spell checker config
         self.spell = SpellChecker(distance=2)
         self.spellcandidate = []
-        self.zero = 1
-        self.spellState = False
+        self.check_word_correction = True
+        self.spell_checked = False
         self._autoEdit = True
+        
         #Right click menu
         self.customContextMenuRequested.connect(self.contextMenuEvent) 
-
 
     def contextMenuEvent(self, event):
         contextMenu = QMenu(self)
 
-        transAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/search.png'), "Translate")
-        backAct = contextMenu.addAction("Previous")
-        if self._state:
-            backAct.setText('Previous')
-            backAct.setIcon(QtGui.QIcon('icons/' + self._color + '/back.png'))
+        translate_action = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/search.png'), "Translate")
+        backNext_action = contextMenu.addAction("Previous")
+        if self._current_state:
+            backNext_action.setText('Previous')
+            backNext_action.setIcon(QtGui.QIcon('icons/' + self._color + '/back.png'))
         else:
-            backAct.setText('Next')
-            backAct.setIcon(QtGui.QIcon('icons/' + self._color + '/next.png'))
+            backNext_action.setText('Next')
+            backNext_action.setIcon(QtGui.QIcon('icons/' + self._color + '/next.png'))
 
-        minMaxAct = contextMenu.addAction('Minimize')
+        minMax_action = contextMenu.addAction('Minimize')
         if self._min:
-            minMaxAct.setText('Maximize')
-            minMaxAct.setIcon(QtGui.QIcon('icons/' + self._color + '/max.png'))
+            minMax_action.setText('Maximize')
+            minMax_action.setIcon(QtGui.QIcon('icons/' + self._color + '/max.png'))
         else:
-            minMaxAct.setText('Minimize')
-            minMaxAct.setIcon(QtGui.QIcon('icons/' + self._color + '/min.png'))
+            minMax_action.setText('Minimize')
+            minMax_action.setIcon(QtGui.QIcon('icons/' + self._color + '/min.png'))
         
-        onOffAct = contextMenu.addAction("Translate OFF")
+        onOff_action = contextMenu.addAction("Translate OFF")
         
-        saveAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/save.png'),"Save as Anki Cards")
+        save_ankiCard_action = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/save.png'),"Save as Anki Cards")
 
-        if self.Say.ttsLang == 'en-us' and win10:
+        if self.TTS.ttsLang == 'en-us' and win10:
             ttsMenu = QMenu(contextMenu)
             ttsMenu.setTitle('Text To Speech Options')
             ttsOnOff = ttsMenu.addAction("Text To Speech ON")
             contextMenu.addMenu(ttsMenu)
-            if self._sayWord:
+            if self.tts_onOff_flag:
                 ttsMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
                 ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
                 ttsOnOff.setText('Text To Speech OFF')
-            if not self._sayWord:
+            if not self.tts_onOff_flag:
                 ttsMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
                 ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
                 ttsOnOff.setText('Text To Speech ON')
 
-            if win10 and self.Say.ttsLang == 'en-us':
-                if self.Say.ttsEng == 'win':
-                    engAct = ttsMenu.addAction('Google TTS')
-                    engAct.setIcon(QtGui.QIcon('icons/' + self._color + '/g.png'))
+            if win10 and self.TTS.ttsLang == 'en-us':
+                if self.TTS.ttsEng == 'win':
+                    engine_select_action = ttsMenu.addAction('Google TTS')
+                    engine_select_action.setIcon(QtGui.QIcon('icons/' + self._color + '/g.png'))
                 else:
-                    engAct = ttsMenu.addAction('Windows TTS')
-                    engAct.setIcon(QtGui.QIcon('icons/' + self._color + '/w.png'))
+                    engine_select_action = ttsMenu.addAction('Windows TTS')
+                    engine_select_action.setIcon(QtGui.QIcon('icons/' + self._color + '/w.png'))
             else:
-                self.Say.ttsEng = 'gtts'
+                self.TTS.ttsEng = 'gtts'
         else:
             ttsOnOff = contextMenu.addAction("Text To Speech ON")
-            if self._sayWord:
+            if self.tts_onOff_flag:
                 ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/off.png'))
                 ttsOnOff.setText('Text To Speech OFF')
-            if not self._sayWord:
+            if not self.tts_onOff_flag:
                 ttsOnOff.setIcon(QtGui.QIcon('icons/' + self._color + '/on.png'))
                 ttsOnOff.setText('Text To Speech ON')
-            self.Say.ttsEng = 'gtts'
+            self.TTS.ttsEng = 'gtts'
         
-        swapAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/swap.png'),"Swap Language")
+        swap_action = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/swap.png'),"Swap Language")
 
-        srcChangeMenu = QMenu(contextMenu)
-        srcChangeMenu.setTitle('Options')
-        srcChangeMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/lang.png'))
-        contextMenu.addMenu(srcChangeMenu)
-        langSourceMenu = QMenu(contextMenu)
-        langSourceMenu.setTitle('Source Language')
-        langSourceMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/source.png'))
-        enus = langSourceMenu.addAction("EN US")
-        if self.Say.ttsLang == 'en-us':
+        optionMenu = QMenu(contextMenu)
+        optionMenu.setTitle('Options')
+        optionMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/option.png'))
+        contextMenu.addMenu(optionMenu)
+        language_source_menu = QMenu(contextMenu)
+        language_source_menu.setTitle('Source Language')
+        language_source_menu.setIcon(QtGui.QIcon('icons/' + self._color + '/source.png'))
+        enus = language_source_menu.addAction("EN US")
+        if self.TTS.ttsLang == 'en-us':
             enus.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        enuk = langSourceMenu.addAction("EN UK")
-        if self.Say.ttsLang == 'en-uk':
+        enuk = language_source_menu.addAction("EN UK")
+        if self.TTS.ttsLang == 'en-uk':
             enuk.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Pers = langSourceMenu.addAction("Persian")
+        Pers = language_source_menu.addAction("Persian")
         if self._src == 'fa':
             Pers.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        auto = langSourceMenu.addAction("Auto detect")
+        auto = language_source_menu.addAction("Auto detect")
         if self._src == 'auto':
             auto.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Arabic = langSourceMenu.addAction("Arabic")
+        Arabic = language_source_menu.addAction("Arabic")
         if self._src == 'ar':
             Arabic.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Danish = langSourceMenu.addAction("Danish")
+        Danish = language_source_menu.addAction("Danish")
         if self._src == 'da':
             Danish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        German = langSourceMenu.addAction("German")
+        German = language_source_menu.addAction("German")
         if self._src == 'de':
             German.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Spanish = langSourceMenu.addAction("Spanish")
+        Spanish = language_source_menu.addAction("Spanish")
         if self._src == 'es':
             Spanish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        French = langSourceMenu.addAction("French")
+        French = language_source_menu.addAction("French")
         if self._src == 'fr':
             French.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Italian = langSourceMenu.addAction("Italian")
+        Italian = language_source_menu.addAction("Italian")
         if self._src == 'it':
             Italian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Japanese = langSourceMenu.addAction("Japanese")
+        Japanese = language_source_menu.addAction("Japanese")
         if self._src == 'ja':
             Japanese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Korean = langSourceMenu.addAction("Korean")
+        Korean = language_source_menu.addAction("Korean")
         if self._src == 'ko':
             Korean.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Latin = langSourceMenu.addAction("Latin")
+        Latin = language_source_menu.addAction("Latin")
         if self._src == 'la':
             Latin.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Dutch = langSourceMenu.addAction("Dutch")
+        Dutch = language_source_menu.addAction("Dutch")
         if self._src == 'nl':
             Dutch.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Portuguese = langSourceMenu.addAction("Portuguese")
+        Portuguese = language_source_menu.addAction("Portuguese")
         if self._src == 'pt':
             Portuguese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Russian = langSourceMenu.addAction("Russian")
+        Russian = language_source_menu.addAction("Russian")
         if self._src == 'ru':
             Russian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Swedish = langSourceMenu.addAction("Swedish")
+        Swedish = language_source_menu.addAction("Swedish")
         if self._src == 'sv':
             Swedish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Turkish = langSourceMenu.addAction("Turkish")
+        Turkish = language_source_menu.addAction("Turkish")
         if self._src == 'tr':
             Turkish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        Chinese = langSourceMenu.addAction("Chinese")
+        Chinese = language_source_menu.addAction("Chinese")
         if self._src == 'zh-CN':
             Chinese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        srcChangeMenu.addMenu(langSourceMenu)
+        optionMenu.addMenu(language_source_menu)
 
-        langDestMenu = QMenu(contextMenu)
-        langDestMenu.setTitle('Destination Language')
-        langDestMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/dest.png'))
-        persian = langDestMenu.addAction("Persian")
+        language_dest_menu = QMenu(contextMenu)
+        language_dest_menu.setTitle('Destination Language')
+        language_dest_menu.setIcon(QtGui.QIcon('icons/' + self._color + '/dest.png'))
+        persian = language_dest_menu.addAction("Persian")
         if self._dest == 'fa':
             persian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        english = langDestMenu.addAction("English")
+        english = language_dest_menu.addAction("English")
         if self._dest == 'en':
             english.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dArabic = langDestMenu.addAction("Arabic")
+        dArabic = language_dest_menu.addAction("Arabic")
         if self._dest == 'ar':
             dArabic.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dDanish = langDestMenu.addAction("Danish")
+        dDanish = language_dest_menu.addAction("Danish")
         if self._dest == 'da':
             dDanish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dGerman = langDestMenu.addAction("German")
+        dGerman = language_dest_menu.addAction("German")
         if self._dest == 'de':
             dGerman.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dSpanish = langDestMenu.addAction("Spanish")
+        dSpanish = language_dest_menu.addAction("Spanish")
         if self._dest == 'es':
             dSpanish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dFrench = langDestMenu.addAction("French")
+        dFrench = language_dest_menu.addAction("French")
         if self._dest == 'fr':
             dFrench.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dItalian = langDestMenu.addAction("Italian")
+        dItalian = language_dest_menu.addAction("Italian")
         if self._dest == 'it':
             dItalian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dJapanese = langDestMenu.addAction("Japanese")
+        dJapanese = language_dest_menu.addAction("Japanese")
         if self._dest == 'ja':
             dJapanese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dKorean = langDestMenu.addAction("Korean")
+        dKorean = language_dest_menu.addAction("Korean")
         if self._dest == 'ko':
             dKorean.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dLatin = langDestMenu.addAction("Latin")
+        dLatin = language_dest_menu.addAction("Latin")
         if self._dest == 'la':
             dLatin.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dDutch = langDestMenu.addAction("Dutch")
+        dDutch = language_dest_menu.addAction("Dutch")
         if self._dest == 'nl':
             dDutch.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dPortuguese = langDestMenu.addAction("Portuguese")
+        dPortuguese = language_dest_menu.addAction("Portuguese")
         if self._dest == 'pt':
             dPortuguese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dRussian = langDestMenu.addAction("Russian")
+        dRussian = language_dest_menu.addAction("Russian")
         if self._dest == 'ru':
             dRussian.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dSwedish = langDestMenu.addAction("Swedish")
+        dSwedish = language_dest_menu.addAction("Swedish")
         if self._dest == 'sv':
             dSwedish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dTurkish = langDestMenu.addAction("Turkish")
+        dTurkish = language_dest_menu.addAction("Turkish")
         if self._dest == 'tr':
             dTurkish.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        dChinese = langDestMenu.addAction("Chinese")
+        dChinese = language_dest_menu.addAction("Chinese")
         if self._dest == 'zh-CN':
             dChinese.setIcon(QtGui.QIcon('icons/' + self._color + '/tick.png'))
-        srcChangeMenu.addMenu(langDestMenu)
+        optionMenu.addMenu(language_dest_menu)
 
         if self._autoEdit:
-            autoEdit = srcChangeMenu.addAction(QtGui.QIcon('icons/' + self._color + '/ef.png'),'Auto Edit Paragraph OFF')
+            autoEdit = optionMenu.addAction(QtGui.QIcon('icons/' + self._color + '/ef.png'),'Auto Edit Paragraph OFF')
         else:
-            autoEdit = srcChangeMenu.addAction(QtGui.QIcon('icons/' + self._color + '/en.png'),'Auto Edit Paragraph ON')
+            autoEdit = optionMenu.addAction(QtGui.QIcon('icons/' + self._color + '/en.png'),'Auto Edit Paragraph ON')
         
+        icons_color_menu = QMenu(contextMenu)
+        icons_color_menu.setTitle("Icon's Color")
+        icons_color_menu.setIcon(QtGui.QIcon('icons/' + self._color + '/color.png'))
+        brown_action = icons_color_menu.addAction("Brown")
+        brown_action.setIcon(QtGui.QIcon('icons/b.png'))
+
+        cyan_action = icons_color_menu.addAction("Cyan")
+        cyan_action.setIcon(QtGui.QIcon('icons/c.png'))
+
+        dark_action = icons_color_menu.addAction("Dark")
+        dark_action.setIcon(QtGui.QIcon('icons/d.png'))
+
+        indigo_action = icons_color_menu.addAction("Indigo")
+        indigo_action.setIcon(QtGui.QIcon('icons/i.png'))
+
+        orange_action = icons_color_menu.addAction("Orange")
+        orange_action.setIcon(QtGui.QIcon('icons/o.png'))
+
+        pink_action = icons_color_menu.addAction("Pink")
+        pink_action.setIcon(QtGui.QIcon('icons/p.png'))
+
+        teal_action = icons_color_menu.addAction("Teal")
+        teal_action.setIcon(QtGui.QIcon('icons/t.png'))
+        optionMenu.addMenu(icons_color_menu)
+        
+
         copyMenu = QMenu(contextMenu)
-        copyMenu.setTitle('Copy')
+        copyMenu.setTitle('Copy')       
         copyMenu.setIcon(QtGui.QIcon('icons/' + self._color + '/copy.png'))
         copyAct = copyMenu.addAction(QtGui.QIcon('icons/' + self._color + '/copy.png'), "Copy without Translate")
         htmlAct = copyMenu.addAction(QtGui.QIcon('icons/' + self._color + '/art.png'),"Copy all as HTML")
@@ -444,108 +492,165 @@ class My_App(QLabel):
 
         quitAct = contextMenu.addAction(QtGui.QIcon('icons/' + self._color + '/power.png'), '&Exit')
 
-        if self._trans:
-            onOffAct.setIcon(QtGui.QIcon('icons/' + self._color + '/s.png'))
-            onOffAct.setText('Translate OFF')
-        if not self._trans:
-            onOffAct.setIcon(QtGui.QIcon('icons/' + self._color + '/st.png'))
-            onOffAct.setText('Translate ON')
+        if self._translator_onOff:
+            onOff_action.setIcon(QtGui.QIcon('icons/' + self._color + '/s.png'))
+            onOff_action.setText('Translate OFF')
+        if not self._translator_onOff:
+            onOff_action.setIcon(QtGui.QIcon('icons/' + self._color + '/st.png'))
+            onOff_action.setText('Translate ON')
 
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         # actions
+        if action == brown_action:
+            try:
+                self._color = 'b'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('b')
+                fileWrite.close()
+            except Exception:
+                pass
+        if action == cyan_action:
+            try:
+                self._color = 'c'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('c')
+                fileWrite.close()
+            except Exception:
+                pass
+        if action == dark_action:
+            try:
+                self._color = 'd'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('d')
+                fileWrite.close()
+            except Exception:
+                pass
+        if action == indigo_action:
+            try:
+                self._color = 'i'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('i')
+                fileWrite.close()
+            except Exception:
+                pass
+        if action == orange_action:
+            try:
+                self._color = 'o'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('o')
+                fileWrite.close()
+            except Exception:
+                pass
+        if action == pink_action:
+            try:
+                self._color = 'p'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('p')
+                fileWrite.close()
+            except Exception:
+                pass
+        if action == teal_action:
+            try:
+                self._color = 't'
+                fileWrite = open('color.txt', "w")
+                fileWrite.write('t')
+                fileWrite.close()
+            except Exception:
+                pass
+
         if action == autoEdit:
             self._autoEdit = not self._autoEdit
-        if win10 and self.Say.ttsLang == 'en-us':
-            if action == engAct:
-                if self.Say.ttsEng == 'win':
-                    self.Say.ttsEng = 'gtts'
+        if win10 and self.TTS.ttsLang == 'en-us':
+            if action == engine_select_action:
+                if self.TTS.ttsEng == 'win':
+                    self.TTS.ttsEng = 'gtts'
                 else:
-                    self.Say.ttsEng = 'win'
+                    self.TTS.ttsEng = 'win'
 
-        if action == swapAct:
+        if action == swap_action:
             if self._src != 'auto':
                 self._src, self._dest = self._dest, self._src
-                self.Say.last_sound = ''
-                self.Say.ttsLang = self._src
+                self.TTS.last_sound = ''
+                self.TTS.ttsLang = self._src
                 if self._src == 'en':
-                    self.Say.ttsLang = 'en-us'
+                    self.TTS.ttsLang = 'en-us'
 
         if action == enus:
             self._src = 'en'
-            self.Say.ttsLang = 'en-us'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'en-us'
+            self.TTS.last_sound = ''
         if action == enuk:
             self._src = 'en'
-            self.Say.ttsLang = 'en-uk'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'en-uk'
+            self.TTS.last_sound = ''
         if action == Pers:
             self._src = 'fa'
-            self.Say.ttsLang = 'fa'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'fa'
+            self.TTS.last_sound = ''
         if action == auto:
             self._src = 'auto'
-            self.Say.ttsLang = ''
+            self.TTS.ttsLang = ''
         if action == Arabic:
             self._src = 'ar'
-            self.Say.ttsLang = 'ar'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'ar'
+            self.TTS.last_sound = ''
         if action == Danish:
             self._src = 'da'
-            self.Say.ttsLang = 'da'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'da'
+            self.TTS.last_sound = ''
         if action == German:
             self._src = 'de'
-            self.Say.ttsLang = 'de'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'de'
+            self.TTS.last_sound = ''
         if action == Spanish:
             self._src = 'es'
-            self.Say.ttsLang = 'es'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'es'
+            self.TTS.last_sound = ''
         if action == French:
             self._src = 'fr'
-            self.Say.ttsLang = 'fr'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'fr'
+            self.TTS.last_sound = ''
         if action == Italian:
             self._src = 'it'
-            self.Say.ttsLang = 'it'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'it'
+            self.TTS.last_sound = ''
         if action == Japanese:
             self._src = 'ja'
-            self.Say.ttsLang = 'ja'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'ja'
+            self.TTS.last_sound = ''
         if action == Korean:
             self._src = 'ko'
-            self.Say.ttsLang = 'ko'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'ko'
+            self.TTS.last_sound = ''
         if action == Latin:
             self._src = 'la'
-            self.Say.ttsLang = 'la'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'la'
+            self.TTS.last_sound = ''
         if action == Dutch:
             self._src = 'nl'
-            self.Say.ttsLang = 'nl'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'nl'
+            self.TTS.last_sound = ''
         if action == Portuguese:
             self._src = 'pt'
-            self.Say.ttsLang = 'pt'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'pt'
+            self.TTS.last_sound = ''
         if action == Russian:
             self._src = 'ru'
-            self.Say.ttsLang = 'ru'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'ru'
+            self.TTS.last_sound = ''
         if action == Swedish:
             self._src = 'sv'
-            self.Say.ttsLang = 'sv'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'sv'
+            self.TTS.last_sound = ''
         if action == Turkish:
             self._src = 'tr'
-            self.Say.ttsLang = 'tr'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'tr'
+            self.TTS.last_sound = ''
         if action == Chinese:
             self._src = 'zh-CN'
-            self.Say.ttsLang = 'zh-CN'
-            self.Say.last_sound = ''
+            self.TTS.ttsLang = 'zh-CN'
+            self.TTS.last_sound = ''
 
         if action == persian:
             self._dest = 'fa'
@@ -582,57 +687,57 @@ class My_App(QLabel):
         if action == dChinese:
             self._dest = 'zh-CN'
 
-        if action == onOffAct:
-            self._trans = not self._trans
+        if action == onOff_action:
+            self._translator_onOff = not self._translator_onOff
         
         if action == ttsOnOff:
-            self._sayWord = not self._sayWord
+            self.tts_onOff_flag = not self.tts_onOff_flag
 
-        if action == saveAct:
+        if action == save_ankiCard_action:
             self.saveAnki()
 
-        if action == backAct:
-            self._state = not self._state
-            self._backAns, self._lastAns = self._lastAns, self._backAns
-            self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
-            self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
-            if self._lastAns == ' ':
+        if action == backNext_action:
+            self._current_state = not self._current_state
+            self._previousAnswer, self._lastAnswer = self._lastAnswer, self._previousAnswer
+            self._previousAnswerText, self._lastAnswerText = self._lastAnswerText, self._previousAnswerText
+            self._previousClipboard, self._lastClipboard = self._lastClipboard, self._previousClipboard
+            if self._lastAnswer == ' ':
                 self._min = True
             else:
                 self._min = False
-            self.setText(self._lastAns)
+            self.setText(self._lastAnswer)
             self.adjustSize()
 
-        if (action == minMaxAct):
+        if (action == minMax_action):
             self.minmax(not self._min)
 
         if action == quitAct:
             self.close()
 
         if (action == copyAct) and self.hasSelectedText:
-            self._allowTrans = False
+            self._allow_translation = False
             pyperclip.copy(self.selectedText())
 
         if action == htmlAct:
-            pyperclip.copy(self._lastAns.replace('left','center'))
+            pyperclip.copy(self._lastAnswer.replace('left','center'))
 
         if action == allCopyAct:
-            pyperclip.copy(self._lastAnsText)
+            pyperclip.copy(self._lastAnswerText)
 
-        if action == transAct:
+        if action == translate_action:
             if self.hasSelectedText():
                 if self.selectedText() == pyperclip.paste():
-                    self._allowTrans = True
+                    self._allow_translation = True
                     self.databack('TarjumehDobAreHLach')
                 else:
                     pyperclip.copy(self.selectedText())
             else:
-                self._allowTrans = True
+                self._allow_translation = True
                 self.databack('TarjumehDobAreHLach')
 
     def databack(self, clipboard_content):
-        self.spellState = False
-        if (self._allowTrans & self._trans) & (clipboard_content != '') & (re.search(r'((^(https|ftp|http):\/\/)|(^www.\w+\.)|(^))(\w+\.)(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\/)',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnsText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
+        self.spell_checked = False
+        if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & (re.search(r'((^(https|ftp|http):\/\/)|(^www.\w+\.)|(^))(\w+\.)(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\/)',clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (re.search(r'</.+?>',clipboard_content) is None) & (self._lastAnswerText != clipboard_content) & (not self._firstStart) & ((clipboard_content.count(' ') > 2) | ((not any(c in clipboard_content for c in ['@','#','$','&'])) & (False if False in [False if (len(re.findall('([0-9])',t)) > 0) & (len(re.findall('([0-9])',t)) != len(t)) else True for t in clipboard_content.split(' ')] else True))):
 
             if clipboard_content == 'TarjumehDobAreHLach': # key for update lang
                 clipboard_content = pyperclip.paste()
@@ -669,7 +774,7 @@ class My_App(QLabel):
                                         spS[i] = q + p
                                         c = False
                                         break
-                                    R = re.search(r"(\w+\.(com|io|org|net|ir|edu|info|ac.(\w{2,3})))", spS[i])
+                                    R = re.search(r"(\w+\.(com|io|org|gov|se|ch|de|nl|eu|net|ir|edu|info|ac.(\w{2,3})))", spS[i])
                                     if R:
                                         q = spS[i][0:R.end()]
                                         if R.end() < R.endpos and re.search("[a-zA-Z]",spS[i][R.end()]):
@@ -695,8 +800,8 @@ class My_App(QLabel):
                 clipboard_content = re.sub(r"(\n|^)\s+","\n",clipboard_content)
                 clipboard_content = clipboard_content.replace("*$_#", "...") #dont inter enter for ...
             if self._src in ['en','de','es','fr','pt']:
-                self.spell = SpellChecker(language=self._src, distance=1)
-            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src in ['en','de','es','fr','pt']) and self.zero and (len(self.spell.known({clipboard_content.strip(".,:;،٬٫/")})) == 0):
+                self.spell = SpellChecker(language=self._src, distance=2)
+            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (self._src in ['en','de','es','fr','pt']) and self.check_word_correction and (len(self.spell.known({clipboard_content.strip(".,:;،٬٫/")})) == 0):
                 candidateWords = list(self.spell.candidates(clipboard_content))
                 candidateDic = {candidateWords[i]: self.spell.word_probability(candidateWords[i]) for i in range(len(candidateWords))}
                 sortedItem = sorted(candidateDic.items(), key=lambda item: item[1], reverse=True)
@@ -707,25 +812,24 @@ class My_App(QLabel):
                 for i in range(len(self.spellcandidate)):
                     message = message + str(i+1) + ':&nbsp;' + self.spellcandidate[i] + "&nbsp;&nbsp;"
                 message = message + '</div>'
-                self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
-                self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
-                self._backAnsText = self._lastAns
-                self._lastAns = message
-                self.setText(self._lastAns)
+                self._previousAnswerText, self._lastAnswerText = self._lastAnswerText, ' '
+                self._previousClipboard, self._lastClipboard = self._lastClipboard, ' '
+                self._previousAnswerText = self._lastAnswer
+                self._lastAnswer = message
+                self.setText(self._lastAnswer)
                 self.adjustSize()
                 self._min = False
-                self.spellState = True
+                self.spell_checked = True
             else:
-                self.zero = 1
+                self.check_word_correction = True
                 tryCount = 0
                 condition = True #try 3 time for translate
-                self._htmlTextClick = False
                 while condition:
                     try:
-                        ans = translator.translate(clipboard_content, dest=self._dest, src=self._src)
+                        ans = self.translator.translate(clipboard_content, dest=self._dest, src=self._src)
                         if self._src == 'auto':
-                            self.Say.ttsLang = ans.src
-                        self._backClipboard = self._lastClipboard
+                            self.TTS.ttsLang = ans.src
+                        self._previousClipboard = self._lastClipboard
                         self._lastClipboard = clipboard_content
                         alltrans = ans.extra_data['all-translations']
                         define = ans.extra_data['definitions']
@@ -755,7 +859,6 @@ class My_App(QLabel):
                             else:
                                 ans.text = ans.text.replace('\n', "<br>")
                                 if self._dest in ['fa', 'ar']:
-                                    print('fa')
                                     s = '<div dir="rtl">' + ans.text + '</div>'
                                 else:
                                     s = '<div>' + ans.text + '</div>'
@@ -765,10 +868,10 @@ class My_App(QLabel):
                                     s += '<div style="text-align:left;">' + define[i][1][j][0].capitalize() + '</font></div>'
                                     if len(define[i][1][j]) == 3:
                                         s += '<div style="text-align:left;"><em><font color="#ccaca0">"' + define[i][1][j][2] + '"</font></em></div>'
-                        self._backAns = self._lastAns
-                        self._lastAns = s
-                        self._backAnsText = self._lastAnsText
-                        self._lastAnsText = re.sub('\<.+?\>', "", self._lastAns.replace("<br>", '\n').replace('</div>', '\n'))
+                        self._previousAnswer = self._lastAnswer
+                        self._lastAnswer = s
+                        self._previousAnswerText = self._lastAnswerText
+                        self._lastAnswerText = re.sub('\<.+?\>', "", self._lastAnswer.replace("<br>", '\n').replace('</div>', '\n'))
                         self.setText(s.replace('\n', '<br>'))
                         self.adjustSize()
                         condition = False
@@ -776,44 +879,40 @@ class My_App(QLabel):
                     except Exception as e:
                         time.sleep(1)
                         tryCount = tryCount + 1
-                        self._backAnsText, self._lastAnsText = self._lastAnsText, ' '
-                        self._backClipboard, self._lastClipboard = self._lastClipboard, ' '
-                        self._backAnsText = self._lastAns
-                        self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>' + str(e) + '</div>'
+                        self._previousAnswerText, self._lastAnswerText = self._lastAnswerText, ' '
+                        self._previousClipboard, self._lastClipboard = self._lastClipboard, ' '
+                        self._previousAnswerText = self._lastAnswer
+                        self._lastAnswer = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>' + str(e) + '</div>'
                         if str(e) == "'NoneType' object has no attribute 'group'":
-                            self._lastAns = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp;a&nbsp;token&nbsp;from&nbsp;google.translate.com<br>try again or restart the App.</div>'
-                        self.setText(self._lastAns)
+                            self._lastAnswer = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp;a&nbsp;token&nbsp;from&nbsp;google.translate.com<br>try again or restart the App.</div>'
+                        self.setText(self._lastAnswer)
                         self.adjustSize()
                         self._min = False
                         QApplication.processEvents()
                         if tryCount > 2:
                             condition = False
-                    if self._sayWord & (not condition):
-                        self.Say.Read(self._lastClipboard)
+                    if self.tts_onOff_flag & (not condition):
+                        self.TTS.Read(self._lastClipboard)
 
-        if self._sayWord & (not self._trans):
-            self.Say.Read(pyperclip.paste())
+        if self.tts_onOff_flag & (not self._translator_onOff):
+            self.TTS.Read(pyperclip.paste())
 
-        self._allowTrans = True
-        self._state = True
-        if self._firstStart == True:
-            self._firstStart = False
-            self._lastAns = self.wellcomeText
-            self.setText(self._lastAns)
-            self.adjustSize()
+        self._allow_translation = True
+        self._current_state = True
+        self._firstStart = False
     
     def startWatcher(self):
         self.watcher.start()
     
     def closeEvent(self, event):
-        self.Say.stop()
+        self.TTS.stop()
         self.watcher.stop()
     
     def keyPressEvent(self, event):
-        # save auto anki card
-        if self.spellState:
+        
+        if self.spell_checked:
             if event.key() == 48 or event.key() == 1776:
-                self.zero = 0
+                self.check_word_correction = False
                 self.databack('TarjumehDobAreHLach')
             if event.key() == 49 or event.key() == 1777:
                 pyperclip.copy(self.spellcandidate[0])
@@ -828,94 +927,37 @@ class My_App(QLabel):
             if event.key() == 54 or event.key() == 1782:
                 pyperclip.copy(self.spellcandidate[5])
         
-        if (event.key() == Qt.Key_H or event.key() == 1575) and self._lastAns != self._instruction:
-            self._backAns, self._lastAns = self._lastAns, self._instruction
-            self._backAnsText, self._lastAnsText = self._lastAnsText, ''
-            self._backClipboard, self._lastClipboard = self._lastClipboard, ''
-            self.setText(self._lastAns)
+        if (event.key() == Qt.Key_H or event.key() == 1575) and self._lastAnswer != self._instruction:
+            self._previousAnswer, self._lastAnswer = self._lastAnswer, self._instruction
+            self._previousAnswerText, self._lastAnswerText = self._lastAnswerText, ''
+            self._previousClipboard, self._lastClipboard = self._lastClipboard, ''
+            self.setText(self._lastAnswer)
             self.adjustSize()
-
-        if event.key() == Qt.Key_B or event.key() == 1584:
-            try:
-                self._color = 'b'
-                fileWrite = open('color.txt', "w")
-                fileWrite.write('b')
-                fileWrite.close()
-            except Exception:
-                pass
-        if event.key() == Qt.Key_C or event.key() == 1586:
-            try:
-                self._color = 'c'
-                fileWrite = open('color.txt', "w")
-                fileWrite.write('c')
-                fileWrite.close()
-            except Exception:
-                pass
-        if event.key() == Qt.Key_O or event.key() == 1582:
-            try:
-                self._color = 'o'
-                fileWrite = open('color.txt', "w")
-                fileWrite.write('o')
-                fileWrite.close()
-            except Exception:
-                pass
-        if event.key() == Qt.Key_I or event.key() == 1607:
-            try:
-                self._color = 'i'
-                fileWrite = open('color.txt', "w")
-                fileWrite.write('i')
-                fileWrite.close()
-            except Exception:
-                pass
-        if event.key() == Qt.Key_P or event.key() == 1581:
-            try:
-                self._color = 'p'
-                fileWrite = open('color.txt', "w")
-                fileWrite.write('p')
-                fileWrite.close()
-            except Exception:
-                pass
-        if event.key() == Qt.Key_T or event.key() == 1601:
-            try:
-                self._color = 't'
-                fileWrite = open('color.txt', "w")
-                fileWrite.write('t')
-                fileWrite.close()
-            except Exception:
-                pass
-        if event.key() == Qt.Key_D or event.key() == 1740:
-            try:
-                self._color = 'd'
-                fileWrite = open('color.txt', "w")
-                fileWrite.write('d')
-                fileWrite.close()
-            except Exception:
-                pass
 
         if (event.key() == Qt.Key_S or event.key() == 1587) & (self._lastClipboard != '') :
             self.saveAnki()
 
         # copy text or html file to clipboard
         if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_T or event.key() == 1601):
-            pyperclip.copy(self._lastAnsText)
+            pyperclip.copy(self._lastAnswerText)
             self.formToggle()
         if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_H or event.key() == 1575):
-            pyperclip.copy(self._lastAns.replace('left','center'))
+            pyperclip.copy(self._lastAnswer.replace('left','center'))
             self.formToggle()
 
         if (event.key() == Qt.Key_R or event.key() == 1602):
-            self.Say.last_text = ''
-            if self._trans:
-                self.Say.Read(self._lastClipboard)
+            self.TTS.last_text = ''
+            if self._translator_onOff:
+                self.TTS.Read(self._lastClipboard)
             else:
-                self.Say.Read(pyperclip.paste())
+                self.TTS.Read(pyperclip.paste())
         
         # on or off text to speech
         if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_N or event.key() == 1583):
-            self._sayWord = True
+            self.tts_onOff_flag = True
             self.formToggle()
         if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_F or event.key() == 1576):
-            self._sayWord = False
+            self.tts_onOff_flag = False
             self.formToggle()
 
         # minimize and maximize
@@ -924,50 +966,50 @@ class My_App(QLabel):
         if event.key() == Qt.Key_X or event.key() == 1591:
             self.minmax(False)
 
-        if (event.key() == Qt.Key_Left) & (self._state):
-            self._state = False
-            self._backAns, self._lastAns = self._lastAns, self._backAns
-            self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
-            self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
-            if self._lastAns == ' ':
+        if (event.key() == Qt.Key_Left) & (self._current_state):
+            self._current_state = False
+            self._previousAnswer, self._lastAnswer = self._lastAnswer, self._previousAnswer
+            self._previousAnswerText, self._lastAnswerText = self._lastAnswerText, self._previousAnswerText
+            self._previousClipboard, self._lastClipboard = self._lastClipboard, self._previousClipboard
+            if self._lastAnswer == ' ':
                 self._min = True
             else:
                 self._min = False
-            self.setText(self._lastAns)
+            self.setText(self._lastAnswer)
             self.adjustSize()
 
-        if (event.key() == Qt.Key_Right) & (not  self._state):
-            self._state = True
-            self._backAns, self._lastAns = self._lastAns, self._backAns
-            self._backAnsText, self._lastAnsText = self._lastAnsText, self._backAnsText
-            self._backClipboard, self._lastClipboard = self._lastClipboard, self._backClipboard
-            if self._lastAns == ' ':
+        if (event.key() == Qt.Key_Right) & (not  self._current_state):
+            self._current_state = True
+            self._previousAnswer, self._lastAnswer = self._lastAnswer, self._previousAnswer
+            self._previousAnswerText, self._lastAnswerText = self._lastAnswerText, self._previousAnswerText
+            self._previousClipboard, self._lastClipboard = self._lastClipboard, self._previousClipboard
+            if self._lastAnswer == ' ':
                 self._min = True
             else:
                 self._min = False
-            self.setText(self._lastAns)
+            self.setText(self._lastAnswer)
             self.adjustSize()
         
 
     def saveAnki(self):
-        self._wordAdd = True
-        for word in self.savedAnswer:
+        self._word_added = True
+        for word in self.saved_words:
             if word == self._lastClipboard:
-                self._wordAdd = False
-        if self._wordAdd:
+                self._word_added = False
+        if self._word_added:
             unique_filename = str(uuid.uuid4())
-            fullPath = os.path.join(self.desktop, unique_filename +".mp3")
-            if win10 and self.Say.ttsEng == 'win':
-                self.Say.engine.save_to_file(self._lastClipboard, fullPath)
-                self.Say.engine.runAndWait()
+            fullPath = os.path.join(self.export_Folder, unique_filename +".mp3")
+            if win10 and self.TTS.ttsEng == 'win':
+                self.TTS.engine.save_to_file(self._lastClipboard, fullPath)
+                self.TTS.engine.runAndWait()
             else:
-                var = gTTS(text = self._lastClipboard,lang = self.Say.ttsLang) 
+                var = gTTS(text = self._lastClipboard,lang = self.TTS.ttsLang) 
                 var.save(fullPath)
-            self.my_note = genanki.Note(model=self.my_model, fields=[self._lastClipboard, self._lastAns.replace('left','center'), '[sound:'+ unique_filename + '.mp3'+']'])
+            self.my_note = genanki.Note(model=self.my_model, fields=[self._lastClipboard, self._lastAnswer.replace('left','center'), '[sound:'+ unique_filename + '.mp3'+']'])
             self.my_deck.add_note(self.my_note)
             self.my_package.media_files.append(fullPath)
-            self.my_package.write_to_file(os.path.join(self.desktop, 'output '+ str(self._initTime).replace(':','.') +'.apkg'))
-            self.savedAnswer.append(self._lastClipboard)
+            self.my_package.write_to_file(os.path.join(self.export_Folder, 'output '+ str(self._initTime).replace(':','.') +'.apkg'))
+            self.saved_words.append(self._lastClipboard)
             self.formToggle()
         
     def minmax(self, e):
@@ -976,15 +1018,15 @@ class My_App(QLabel):
             self.setText(' ')
             self.adjustSize()
         else:
-            self.setText(self._lastAns)
-            if self._lastAns == ' ':
+            self.setText(self._lastAnswer)
+            if self._lastAnswer == ' ':
                 self.setText(self.wellcomeText)
             self.adjustSize()
 
     def formToggle (self):
         self.setStyleSheet("QLabel { background-color : #353535; color : white; }")
         QApplication.processEvents()
-        time.sleep(0.1)
+        time.sleep(0.05)
         self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
 
         
