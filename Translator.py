@@ -12,7 +12,7 @@ from datetime import datetime
 from gtts import gTTS
 from playsound import playsound
 from spellchecker import SpellChecker
-import wordsHaveDot
+import wordsHaveDot, texts
 
 if platform.system() == "Windows" and platform.release() == "10":
     win10 = True
@@ -148,43 +148,72 @@ def readIconsColorFromTextFile():
     return color
 
 
+def createAnkiCardsModel():
+    CardModel = genanki.Model(
+        1380120064,
+        'pyNote',
+        fields=[
+            {'name': 'Front'},
+            {'name': 'Back'},
+            {'name': 'MyMedia'},
+        ],
+        templates=[
+            {
+                'name': 'Card 1',
+                'qfmt': '{{Front}}{{MyMedia}}',
+                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
+            },
+        ],
+        css='''
+            .card {
+            font-family: IRANSansWeb Medium;
+            font-size: 20px;
+            text-align: center;
+            color: black;
+            background-color: white;
+            }
+            .card.night_mode {
+            font-family: IRANSansWeb Medium;
+            font-size: 20px;
+            text-align: center;
+            color: white;
+            background-color: black;
+            }
+        ''')
+    return CardModel
+
+
+def myDeckName():
+    try:
+        fileRead = open("deckName.txt", "r")
+        myDeckName = fileRead.read()
+        fileRead.close()
+    except Exception:
+        myDeckName = 'IMPORTED'
+        try:
+            fileWrite = open('deckName.txt', "w")
+            fileWrite.write('IMPORTED')
+            fileWrite.close()
+        except Exception:
+            pass
+    return myDeckName
+
+
+def createExportFolder():
+    if platform.system() == 'Windows':
+        exportFolderPath = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
+    else:
+        exportFolderPath = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop/Export')
+
+    if not os.path.exists(exportFolderPath):
+        os.mkdir(exportFolderPath)
+    return exportFolderPath
+
+
 class MyApp(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setUIProperty()
-        self._welcomeTextWithoutEmoji = '<div><font style="font-size:13pt">Hi&nbsp;:)</font></div><div><font ' \
-                                        'style="font-size:10pt">Copy&nbsp;any&nbsp;text&nbsp;for&nbsp;translation<br' \
-                                        '>Press&nbsp;H&nbsp;to&nbsp;show&nbsp;Instruction</font></div><div><font ' \
-                                        'style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div> '
-        self._welcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻</font></div><div><font ' \
-                            'style="font-size:10pt">Copy&nbsp;any&nbsp;text&nbsp;for&nbsp;translation<br>Press&nbsp;H' \
-                            '&nbsp;to&nbsp;show&nbsp;Instruction</font></div><div><font ' \
-                            'style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div> '
-        self._instructionText = '<div><font style="font-size:10pt">Mouse&nbsp;Actions:<br>Translate->&nbsp;translate' \
-                                '&nbsp;anything&nbsp;in&nbsp;clipboard<br>&nbsp;&nbsp;&nbsp;&nbsp;click&nbsp;on&nbsp' \
-                                ';this,&nbsp;translate&nbsp;selected&nbsp;text&nbsp;on&nbsp;app<br>Previous/next' \
-                                '->&nbsp;toggle&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Translate&nbsp;ON' \
-                                '/OFF->&nbsp;toggle&nbsp;ON/OFF&nbsp;translator<br>Save&nbsp;as&nbsp;Anki&nbsp;Cards' \
-                                '->&nbsp;create&nbsp;anki&nbsp;card&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Text' \
-                                '&nbsp;to&nbsp;speech&nbsp;ON/OFF->&nbsp;toggle&nbsp;ON/OFF&nbsp;TTS<br>&nbsp;&nbsp' \
-                                ';&nbsp;&nbsp;in&nbsp;win10&nbsp;you&nbsp;can&nbsp;select&nbsp;TTS&nbsp;engine&nbsp' \
-                                ';between&nbsp;google/windows&nbsp;api<br>Swap&nbsp;Language->&nbsp;toggle&nbsp' \
-                                ';source&nbsp;and&nbsp;destination&nbsp;Language<br>Option->&nbsp;select&nbsp;source' \
-                                '&nbsp;and&nbsp;destination&nbsp;Language<br>&nbsp;&nbsp;&nbsp;&nbsp;Auto&nbsp;Edit' \
-                                '&nbsp;ON/OFF->try&nbsp;to&nbsp;refine&nbsp;copied&nbsp;text<br>&nbsp;&nbsp;&nbsp' \
-                                ';&nbsp;Icon’s&nbsp;Color->select&nbsp;icon’s&nbsp;desired&nbsp;color<br><br>Keyboard' \
-                                '&nbsp;Actions:<br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp' \
-                                ';ON/OFF<br>Key&nbsp;R,' \
-                                '&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,' \
-                                '&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,' \
-                                '&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,' \
-                                '&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br' \
-                                '>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,' \
-                                '&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key' \
-                                '&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,' \
-                                '&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,' \
-                                '&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows' \
-                                '&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div> '
         self.setWelcomeText()
         self._appsFirstStart = True
         self._lastAnswer = self._welcomeText
@@ -193,9 +222,9 @@ class MyApp(QLabel):
         self._previousAnswerOnlyText = ""  # used to going backward and forward
         self._lastClipboard = ""
         self._previousClipboard = ""  # used to going backward and forward
-        self.exportFolderPath = self.createExportFolder()
-        self.ankiCardModel = self.createAnkiCardsModel()
-        self.myDeck = genanki.Deck(2054560191, self.myDeckName())
+        self.exportFolderPath = createExportFolder()
+        self.ankiCardModel = createAnkiCardsModel()
+        self.myDeck = genanki.Deck(2054560191, myDeckName())
         self.myAnkiPackage = genanki.Package(self.myDeck)
         self._initTime = datetime.now()  # save deck with date name
         self.savedWordsList = []  # list of previous saved word
@@ -262,9 +291,9 @@ class MyApp(QLabel):
 
     def setWelcomeText(self):
         if platform.system() == "Windows" and not platform.release() == "10":
-            self.setText(self._welcomeTextWithoutEmoji)
+            self.setText(texts.welcomeTextWithoutEmoji)
         else:
-            self.setText(self._welcomeText)
+            self.setText(texts.welcomeText)
         self.adjustSize()
 
     def setUIProperty(self):
@@ -286,65 +315,6 @@ class MyApp(QLabel):
                 QApplication.instance().desktop().availableGeometry()
             )
         )
-
-    def createExportFolder(self):
-        if platform.system() == 'Windows':
-            exportFolderPath = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
-        else:
-            exportFolderPath = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop/Export')
-
-        if not os.path.exists(exportFolderPath):
-            os.mkdir(exportFolderPath)
-        return exportFolderPath
-
-    def myDeckName(self):
-        try:
-            fileRead = open("deckName.txt", "r")
-            myDeckName = fileRead.read()
-            fileRead.close()
-        except Exception:
-            myDeckName = 'IMPORTED'
-            try:
-                fileWrite = open('deckName.txt', "w")
-                fileWrite.write('IMPORTED')
-                fileWrite.close()
-            except Exception:
-                pass
-        return myDeckName
-
-    def createAnkiCardsModel(self):
-        CardModel = genanki.Model(
-            1380120064,
-            'pyNote',
-            fields=[
-                {'name': 'Front'},
-                {'name': 'Back'},
-                {'name': 'MyMedia'},
-            ],
-            templates=[
-                {
-                    'name': 'Card 1',
-                    'qfmt': '{{Front}}{{MyMedia}}',
-                    'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
-                },
-            ],
-            css='''
-                .card {
-                font-family: IRANSansWeb Medium;
-                font-size: 20px;
-                text-align: center;
-                color: black;
-                background-color: white;
-                }
-                .card.night_mode {
-                font-family: IRANSansWeb Medium;
-                font-size: 20px;
-                text-align: center;
-                color: white;
-                background-color: black;
-                }
-            ''')
-        return CardModel
 
     def contextMenuEvent(self, event):
         contextMenu = QMenu(self)
@@ -792,8 +762,8 @@ class MyApp(QLabel):
             if event.key() == 54 or event.key() == 1782:
                 pyperclip.copy(self.spellCandidate[5])
 
-        if (event.key() == Qt.Key_H or event.key() == 1575) and self._lastAnswer != self._instructionText:
-            self._previousAnswer, self._lastAnswer = self._lastAnswer, self._instructionText
+        if (event.key() == Qt.Key_H or event.key() == 1575) and self._lastAnswer != texts.instructionText:
+            self._previousAnswer, self._lastAnswer = self._lastAnswer, texts.instructionText
             self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, ''
             self._previousClipboard, self._lastClipboard = self._lastClipboard, ''
             self.setText(self._lastAnswer)
