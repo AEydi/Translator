@@ -210,6 +210,11 @@ def createExportFolder():
     return exportFolderPath
 
 
+def isTextURL(text):
+    return re.search(r'((^(https|ftp|http):\/\/)|(^www.\w+\.)|(^))(\w+\.)(com|io|org|net|ir|edu|info|ac.(\w{2,'
+                     r'3}))($|\/)', text) is None
+
+
 class MyApp(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -539,9 +544,7 @@ class MyApp(QLabel):
 
     def databack(self, clipboard_content):
         self.spell_checked = False
-        if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & (re.search(
-                r'((^(https|ftp|http):\/\/)|(^www.\w+\.)|(^))(\w+\.)(com|io|org|net|ir|edu|info|ac.(\w{2,3}))($|\/)',
-                clipboard_content) is None) & (self._lastClipboard != clipboard_content) & (
+        if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & isTextURL(clipboard_content) & (self._lastClipboard != clipboard_content) & (
                 re.search(r'</.+?>', clipboard_content) is None) & (self._lastAnswerOnlyText != clipboard_content) & (
                 not self._appsFirstStart) & ((clipboard_content.count(' ') > 2) | (
                 (not any(c in clipboard_content for c in ['@', '#', '$', '&'])) & (False if False in [
