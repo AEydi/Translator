@@ -215,6 +215,12 @@ def isTextURL(text):
                      r'3}))($|\/)', text) is None
 
 
+def isTextPassword(text):
+    return ((text.count(' ') > 2) | ((not any(c in text for c in ['@', '#', '$', '&'])) & (False if False in [
+        False if (len(re.findall('([0-9])', t)) > 0) & (len(re.findall('([0-9])', t)) != len(t)) else True for t in
+        text.split(' ')] else True)))
+
+
 class MyApp(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -546,10 +552,7 @@ class MyApp(QLabel):
         self.spell_checked = False
         if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & isTextURL(clipboard_content) & (self._lastClipboard != clipboard_content) & (
                 re.search(r'</.+?>', clipboard_content) is None) & (self._lastAnswerOnlyText != clipboard_content) & (
-                not self._appsFirstStart) & ((clipboard_content.count(' ') > 2) | (
-                (not any(c in clipboard_content for c in ['@', '#', '$', '&'])) & (False if False in [
-            False if (len(re.findall('([0-9])', t)) > 0) & (len(re.findall('([0-9])', t)) != len(t)) else True for t in
-            clipboard_content.split(' ')] else True))):
+                not self._appsFirstStart) & isTextPassword(clipboard_content):
 
             if clipboard_content == 'TarjumehDobAreHLach':  # key for update lang
                 clipboard_content = pyperclip.paste()
