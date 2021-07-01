@@ -221,13 +221,17 @@ def isTextPassword(text):
         text.split(' ')] else True)))
 
 
+def wordContainDot(word):
+    return '.' in word
+
+
 class MyApp(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setUIProperty()
         self.setWelcomeText()
         self._appsFirstStart = True
-        self._lastAnswer = self._welcomeText
+        self._lastAnswer = texts.welcomeText
         self._lastAnswerOnlyText = ""
         self._previousAnswer = " "  # used to going backward and forward
         self._previousAnswerOnlyText = ""  # used to going backward and forward
@@ -567,7 +571,7 @@ class MyApp(QLabel):
                 reg1 = "(^[^\w]|^|\n)"
                 singleWords = re.split(r"\s", clipboard_content)
                 for i in range(len(singleWords)):
-                    if '.' in singleWords[i]:
+                    if wordContainDot(singleWords[i]):
                         if '.' in requiredDotsRegex.sub("", singleWords[i]):
                             if not singleWords[i].lower() in wordsHaveDot.words:
                                 singleWords[i] = re.sub(r"^\.+", ".\n", singleWords[i])
@@ -866,7 +870,7 @@ class MyApp(QLabel):
         else:
             self.setText(self._lastAnswer)
             if self._lastAnswer == ' ':
-                self.setText(self._welcomeText)
+                self.setText(texts.welcomeText)
             self.adjustSize()
 
     def formToggle(self):
