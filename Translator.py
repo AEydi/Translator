@@ -262,6 +262,7 @@ class MyApp(QLabel):
         self.check_word_correction = True
         self.spell_checked = False
         self._autoEdit = True
+        self.requiredDotsRegex = re.compile(r"((^|[^\w])([a-zA-Z]\.)+)(\w+\.|[^\w]|\w|$)|([^\w]|\d)\.\d") # required dots i.e. i.5 2.5 d.o.t .6 $2.
         self.sourceLanguageList = {'EN US': 'en-us',
                                    'EN UK': 'en-uk',
                                    'Persian': 'fa',
@@ -332,6 +333,7 @@ class MyApp(QLabel):
         )
 
     def contextMenuEvent(self, event):
+        global selectTTSEngineButton
         contextMenu = QMenu(self)
 
         translateButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/search.png'), "Translate")
@@ -552,6 +554,9 @@ class MyApp(QLabel):
                 self._allow_translation = True
                 self.databack('TarjumehDobAreHLach')
 
+    def wordContainNotRequiredDots(self, word):
+        return '.' in self.requiredDotsRegex.sub("", word)
+
     def databack(self, clipboard_content):
         self.spell_checked = False
         if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & isTextURL(clipboard_content) & (self._lastClipboard != clipboard_content) & (
@@ -566,13 +571,11 @@ class MyApp(QLabel):
                                                                                                       " ").replace(
                     "...", "*$_#")
 
-                # required dots i.e. i.5 2.5 d.o.t .6 $2.
-                requiredDotsRegex = re.compile(r"((^|[^\w])([a-zA-Z]\.)+)(\w+\.|[^\w]|\w|$)|([^\w]|\d)\.\d")
                 reg1 = "(^[^\w]|^|\n)"
                 singleWords = re.split(r"\s", clipboard_content)
                 for i in range(len(singleWords)):
                     if wordContainDot(singleWords[i]):
-                        if '.' in requiredDotsRegex.sub("", singleWords[i]):
+                        if self.wordContainNotRequiredDots(singleWords[i]):
                             if not singleWords[i].lower() in wordsHaveDot.words:
                                 singleWords[i] = re.sub(r"^\.+", ".\n", singleWords[i])
                                 c = True
