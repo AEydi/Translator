@@ -1,18 +1,26 @@
-import platform, sys, re, os
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu
-from PyQt5.QtCore import QThread, pyqtSignal, Qt
-import genanki
-import pyttsx3, pyttsx3.drivers
+import os
+import platform
+import re
+import sys
 import threading
-import pyperclip
-from googletrans import Translator
-import time, uuid
+import time
+import uuid
 from datetime import datetime
+
+import genanki
+import pyperclip
+import pyttsx3
+import pyttsx3.drivers
+from PyQt5 import QtGui
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
+from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu
 from gtts import gTTS
 from playsound import playsound
+
+import texts
+import wordsHaveDot
+from googletrans import Translator
 from spellchecker import SpellChecker
-import wordsHaveDot, texts
 
 if platform.system() == "Windows" and platform.release() == "10":
     win10 = True
@@ -137,13 +145,13 @@ def readIconsColorFromTextFile():
         fileRead = open("color.txt", "r")
         color = fileRead.read()
         fileRead.close()
-    except Exception:
+    except (Exception,):
         color = 'd'
         try:
             fileWrite = open('color.txt', "w")
             fileWrite.write('d')
             fileWrite.close()
-        except Exception:
+        except (Exception,):
             pass
     return color
 
@@ -194,7 +202,7 @@ def myDeckName():
             fileWrite = open('deckName.txt', "w")
             fileWrite.write('IMPORTED')
             fileWrite.close()
-        except Exception:
+        except (Exception,):
             pass
     return myDeckName
 
@@ -262,7 +270,8 @@ class MyApp(QLabel):
         self.check_word_correction = True
         self.spell_checked = False
         self._autoEdit = True
-        self.requiredDotsRegex = re.compile(r"((^|[^\w])([a-zA-Z]\.)+)(\w+\.|[^\w]|\w|$)|([^\w]|\d)\.\d") # required dots i.e. i.5 2.5 d.o.t .6 $2.
+        self.requiredDotsRegex = re.compile(
+            r"((^|[^\w])([a-zA-Z]\.)+)(\w+\.|[^\w]|\w|$)|([^\w]|\d)\.\d")  # required dots i.e. i.5 2.5 d.o.t .6 $2.
         self.sourceLanguageList = {'EN US': 'en-us',
                                    'EN UK': 'en-uk',
                                    'Persian': 'fa',
@@ -473,7 +482,7 @@ class MyApp(QLabel):
                     fileWrite = open('color.txt', "w")
                     fileWrite.write(colorList[i])
                     fileWrite.close()
-                except Exception:
+                except (Exception,):
                     pass
 
         if selectedAction == autoEditButton:
@@ -517,17 +526,9 @@ class MyApp(QLabel):
 
         if selectedAction == goBackOrNextInAnswersButton:
             self._current_state = not self._current_state
-            self._previousAnswer, self._lastAnswer = self._lastAnswer, self._previousAnswer
-            self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, self._previousAnswerOnlyText
-            self._previousClipboard, self._lastClipboard = self._lastClipboard, self._previousClipboard
-            if self._lastAnswer == ' ':
-                self._appIsMinimize = True
-            else:
-                self._appIsMinimize = False
-            self.setText(self._lastAnswer)
-            self.adjustSize()
+            self.swapBackNextAnswer()
 
-        if (selectedAction == minimizeMaximizeButton):
+        if selectedAction == minimizeMaximizeButton:
             self.appMinMaxChange(not self._appIsMinimize)
 
         if selectedAction == quitAppButton:
@@ -559,7 +560,8 @@ class MyApp(QLabel):
 
     def databack(self, clipboard_content):
         self.spell_checked = False
-        if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & isTextURL(clipboard_content) & (self._lastClipboard != clipboard_content) & (
+        if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & isTextURL(
+                clipboard_content) & (self._lastClipboard != clipboard_content) & (
                 re.search(r'</.+?>', clipboard_content) is None) & (self._lastAnswerOnlyText != clipboard_content) & (
                 not self._appsFirstStart) & isTextPassword(clipboard_content):
 
@@ -596,7 +598,7 @@ class MyApp(QLabel):
                                         if R.end() < R.endpos and re.search("[a-zA-Z]", singleWords[i][R.end()]):
                                             q = singleWords[i][0:R.end()] + " "
                                         p = singleWords[i][R.end():]
-                                        U = requiredDotsRegex.search(p)
+                                        U = self.requiredDotsRegex.search(p)
                                         if U:
                                             p = p[:U.start()].replace(".", ".\n") + p[U.start():U.end()] + p[
                                                                                                            U.end():].replace(
@@ -614,7 +616,7 @@ class MyApp(QLabel):
                                         if R.end() < R.endpos and re.search("[a-zA-Z]", singleWords[i][R.end()]):
                                             q = singleWords[i][0:R.end()] + " "
                                         p = singleWords[i][R.end():]
-                                        U = requiredDotsRegex.search(p)
+                                        U = self.requiredDotsRegex.search(p)
                                         if U:
                                             p = p[:U.start()].replace(".", ".\n") + p[U.start():U.end()] + p[
                                                                                                            U.end():].replace(
@@ -625,7 +627,7 @@ class MyApp(QLabel):
                                         c = False
                                         break
                                 if c:
-                                    U = requiredDotsRegex.search(singleWords[i])
+                                    U = self.requiredDotsRegex.search(singleWords[i])
                                     if U:
                                         singleWords[i] = singleWords[i][:U.start()].replace(".", ".\n") + singleWords[
                                                                                                               i][
@@ -686,8 +688,8 @@ class MyApp(QLabel):
                                     ratio = 1 / float(alltrans[i][2][0][3])
                                 s += '<div><font color="#FFC107">' + alltrans[i][0] + ': </font>'  # اسم فعل قید و ...
                                 for j in range(len(alltrans[i][2])):
-                                    if (len(alltrans[i][2][j]) == 4):
-                                        if (alltrans[i][2][j][3] * ratio > 0.1):
+                                    if len(alltrans[i][2][j]) == 4:
+                                        if alltrans[i][2][j][3] * ratio > 0.1:
                                             cash += alltrans[i][2][j][0] + ' - '
                                     else:
                                         cash += alltrans[i][2][j][0] + ' - '
@@ -793,7 +795,7 @@ class MyApp(QLabel):
             pyperclip.copy(self._lastAnswer.replace('left', 'center'))
             self.formToggle()
 
-        if (event.key() == Qt.Key_R or event.key() == 1602):
+        if event.key() == Qt.Key_R or event.key() == 1602:
             self.textToSpeechObject.previousText = ''
             if self._translator_onOff:
                 self.textToSpeechObject.Read(self._lastClipboard)
@@ -814,29 +816,24 @@ class MyApp(QLabel):
         if event.key() == Qt.Key_X or event.key() == 1591:
             self.appMinMaxChange(False)
 
-        if (event.key() == Qt.Key_Left) & (self._current_state):
+        if (event.key() == Qt.Key_Left) & self._current_state:
             self._current_state = False
-            self._previousAnswer, self._lastAnswer = self._lastAnswer, self._previousAnswer
-            self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, self._previousAnswerOnlyText
-            self._previousClipboard, self._lastClipboard = self._lastClipboard, self._previousClipboard
-            if self._lastAnswer == ' ':
-                self._appIsMinimize = True
-            else:
-                self._appIsMinimize = False
-            self.setText(self._lastAnswer)
-            self.adjustSize()
+            self.swapBackNextAnswer()
 
         if (event.key() == Qt.Key_Right) & (not self._current_state):
             self._current_state = True
-            self._previousAnswer, self._lastAnswer = self._lastAnswer, self._previousAnswer
-            self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, self._previousAnswerOnlyText
-            self._previousClipboard, self._lastClipboard = self._lastClipboard, self._previousClipboard
-            if self._lastAnswer == ' ':
-                self._appIsMinimize = True
-            else:
-                self._appIsMinimize = False
-            self.setText(self._lastAnswer)
-            self.adjustSize()
+            self.swapBackNextAnswer()
+
+    def swapBackNextAnswer(self):
+        self._previousAnswer, self._lastAnswer = self._lastAnswer, self._previousAnswer
+        self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, self._previousAnswerOnlyText
+        self._previousClipboard, self._lastClipboard = self._lastClipboard, self._previousClipboard
+        if self._lastAnswer == ' ':
+            self._appIsMinimize = True
+        else:
+            self._appIsMinimize = False
+        self.setText(self._lastAnswer)
+        self.adjustSize()
 
     def isNotWordSaved(self):
         wordIsAdded = True
