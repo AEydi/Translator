@@ -577,6 +577,52 @@ class MyApp(QLabel):
             p = p.replace(".", ".\n")
         return q + p
 
+    def autoEditDots(self, clipboard_content):
+        clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r",
+                                                                                              " ").replace(
+            "...", "*$_#")
+
+        singleWords = re.split(r"\s", clipboard_content)
+        for i in range(len(singleWords)):
+            if wordContainDot(singleWords[i]) and self.wordContainNotRequiredDots(singleWords[i]) and (
+                    not singleWords[i].lower() in wordsHaveDot.words):
+                singleWords[i] = re.sub(r"^\.+", ".\n", singleWords[i])
+                c = True
+                for k in range(len(wordsHaveDot.words)):
+                    R = wordContainWordHaveDot(k, singleWords[i])
+                    if R:
+                        R1 = wordContainWordHaveDot(k + 1, singleWords[i])
+                        if R1:
+                            R = R1
+                            R2 = wordContainWordHaveDot(k + 2, singleWords[i])
+                            if R2:
+                                R = R2
+                        singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
+                        c = False
+                        break
+                    R = re.search(r"(\w+\.(com|io|org|gov|se|ch|de|nl|eu|net|ir|edu|info|ac.(\w{2,3})))",
+                                  singleWords[i])
+                    if R:
+                        singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
+                        c = False
+                        break
+                if c:
+                    U = self.requiredDotsRegex.search(singleWords[i])
+                    if U:
+                        singleWords[i] = singleWords[i][:U.start()].replace(".", ".\n") + singleWords[
+                                                                                              i][
+                                                                                          U.start():U.end()] + \
+                                         singleWords[i][U.end():].replace(".", ".\n")
+                    else:
+                        singleWords[i] = singleWords[i].replace(".", ".\n")
+
+        clipboard_content = re.sub(r'\u000D\u000A|[\u000A\u000B\u000C\u000D\u0085\u2028\u2029]', '\n',
+                                   clipboard_content)
+        clipboard_content = ' '.join(map(str, singleWords))
+        clipboard_content = re.sub(r"(\n|^)\s+", "\n", clipboard_content)
+        clipboard_content = clipboard_content.replace("*$_#", "...")  # dont inter enter for ...
+        return clipboard_content
+
     def databack(self, clipboard_content):
         self.spell_checked = False
         if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & isTextURL(
@@ -587,50 +633,10 @@ class MyApp(QLabel):
             if clipboard_content == 'TarjumehDobAreHLach':  # key for update lang
                 clipboard_content = pyperclip.paste()
             clipboard_content = clipboard_content.strip()
+
             if self._autoEdit:
-                clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r",
-                                                                                                      " ").replace(
-                    "...", "*$_#")
+                clipboard_content = self.autoEditDots(clipboard_content)
 
-                singleWords = re.split(r"\s", clipboard_content)
-                for i in range(len(singleWords)):
-                    if wordContainDot(singleWords[i]) and self.wordContainNotRequiredDots(singleWords[i]) and (
-                            not singleWords[i].lower() in wordsHaveDot.words):
-                        singleWords[i] = re.sub(r"^\.+", ".\n", singleWords[i])
-                        c = True
-                        for k in range(len(wordsHaveDot.words)):
-                            R = wordContainWordHaveDot(k, singleWords[i])
-                            if R:
-                                R1 = wordContainWordHaveDot(k + 1, singleWords[i])
-                                if R1:
-                                    R = R1
-                                    R2 = wordContainWordHaveDot(k + 2, singleWords[i])
-                                    if R2:
-                                        R = R2
-                                singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
-                                c = False
-                                break
-                            R = re.search(r"(\w+\.(com|io|org|gov|se|ch|de|nl|eu|net|ir|edu|info|ac.(\w{2,3})))",
-                                          singleWords[i])
-                            if R:
-                                singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
-                                c = False
-                                break
-                        if c:
-                            U = self.requiredDotsRegex.search(singleWords[i])
-                            if U:
-                                singleWords[i] = singleWords[i][:U.start()].replace(".", ".\n") + singleWords[
-                                                                                                      i][
-                                                                                                  U.start():U.end()] + \
-                                                 singleWords[i][U.end():].replace(".", ".\n")
-                            else:
-                                singleWords[i] = singleWords[i].replace(".", ".\n")
-
-                clipboard_content = re.sub(r'\u000D\u000A|[\u000A\u000B\u000C\u000D\u0085\u2028\u2029]', '\n',
-                                           clipboard_content)
-                clipboard_content = ' '.join(map(str, singleWords))
-                clipboard_content = re.sub(r"(\n|^)\s+", "\n", clipboard_content)
-                clipboard_content = clipboard_content.replace("*$_#", "...")  # dont inter enter for ...
             if self._src in ['en', 'de', 'es', 'fr', 'pt']:
                 self.spell = SpellChecker(language=self._src, distance=2)
             if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (
