@@ -233,6 +233,11 @@ def wordContainDot(word):
     return '.' in word
 
 
+def wordContainWordHaveDot(k, word):
+    lineStart = "(^[^\w]|^|\n)"
+    return re.search(r"" + lineStart + wordsHaveDot.words[k].replace(".", "\.") + "", word)
+
+
 class MyApp(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -558,6 +563,20 @@ class MyApp(QLabel):
     def wordContainNotRequiredDots(self, word):
         return '.' in self.requiredDotsRegex.sub("", word)
 
+    def addNewLineAfterCutPartContainDottedWord(self, R, word):
+        q = word[0:R.end()]
+        if R.end() < R.endpos and re.search("[a-zA-Z]", word[R.end()]):
+            q = word[0:R.end()] + " "
+        p = word[R.end():]
+        U = self.requiredDotsRegex.search(p)
+        if U:
+            p = p[:U.start()].replace(".", ".\n") + p[U.start():U.end()] + p[
+                                                                           U.end():].replace(
+                ".", ".\n")
+        else:
+            p = p.replace(".", ".\n")
+        return q + p
+
     def databack(self, clipboard_content):
         self.spell_checked = False
         if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & isTextURL(
@@ -573,68 +592,39 @@ class MyApp(QLabel):
                                                                                                       " ").replace(
                     "...", "*$_#")
 
-                reg1 = "(^[^\w]|^|\n)"
                 singleWords = re.split(r"\s", clipboard_content)
                 for i in range(len(singleWords)):
-                    if wordContainDot(singleWords[i]):
-                        if self.wordContainNotRequiredDots(singleWords[i]):
-                            if not singleWords[i].lower() in wordsHaveDot.words:
-                                singleWords[i] = re.sub(r"^\.+", ".\n", singleWords[i])
-                                c = True
-                                for k in range(len(wordsHaveDot.words)):
-                                    R = re.search(r"" + reg1 + wordsHaveDot.words[k].replace(".", "\.") + "",
-                                                  singleWords[i])
-                                    if R:
-                                        R1 = re.search(r"" + reg1 + wordsHaveDot.words[k + 1].replace(".", "\.") + "",
-                                                       singleWords[i])
-                                        if R1:
-                                            R = R1
-                                            R2 = re.search(
-                                                r"" + reg1 + wordsHaveDot.words[k + 2].replace(".", "\.") + "",
-                                                singleWords[i])
-                                            if R2:
-                                                R = R2
-                                        q = singleWords[i][0:R.end()]
-                                        if R.end() < R.endpos and re.search("[a-zA-Z]", singleWords[i][R.end()]):
-                                            q = singleWords[i][0:R.end()] + " "
-                                        p = singleWords[i][R.end():]
-                                        U = self.requiredDotsRegex.search(p)
-                                        if U:
-                                            p = p[:U.start()].replace(".", ".\n") + p[U.start():U.end()] + p[
-                                                                                                           U.end():].replace(
-                                                ".", ".\n")
-                                        else:
-                                            p = p.replace(".", ".\n")
-                                        singleWords[i] = q + p
-                                        c = False
-                                        break
-                                    R = re.search(
-                                        r"(\w+\.(com|io|org|gov|se|ch|de|nl|eu|net|ir|edu|info|ac.(\w{2,3})))",
-                                        singleWords[i])
-                                    if R:
-                                        q = singleWords[i][0:R.end()]
-                                        if R.end() < R.endpos and re.search("[a-zA-Z]", singleWords[i][R.end()]):
-                                            q = singleWords[i][0:R.end()] + " "
-                                        p = singleWords[i][R.end():]
-                                        U = self.requiredDotsRegex.search(p)
-                                        if U:
-                                            p = p[:U.start()].replace(".", ".\n") + p[U.start():U.end()] + p[
-                                                                                                           U.end():].replace(
-                                                ".", ".\n")
-                                        else:
-                                            p = p.replace(".", ".\n")
-                                        singleWords[i] = q + p
-                                        c = False
-                                        break
-                                if c:
-                                    U = self.requiredDotsRegex.search(singleWords[i])
-                                    if U:
-                                        singleWords[i] = singleWords[i][:U.start()].replace(".", ".\n") + singleWords[
-                                                                                                              i][
-                                                                                                          U.start():U.end()] + \
-                                                         singleWords[i][U.end():].replace(".", ".\n")
-                                    else:
-                                        singleWords[i] = singleWords[i].replace(".", ".\n")
+                    if wordContainDot(singleWords[i]) and self.wordContainNotRequiredDots(singleWords[i]) and (
+                            not singleWords[i].lower() in wordsHaveDot.words):
+                        singleWords[i] = re.sub(r"^\.+", ".\n", singleWords[i])
+                        c = True
+                        for k in range(len(wordsHaveDot.words)):
+                            R = wordContainWordHaveDot(k, singleWords[i])
+                            if R:
+                                R1 = wordContainWordHaveDot(k + 1, singleWords[i])
+                                if R1:
+                                    R = R1
+                                    R2 = wordContainWordHaveDot(k + 2, singleWords[i])
+                                    if R2:
+                                        R = R2
+                                singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
+                                c = False
+                                break
+                            R = re.search(r"(\w+\.(com|io|org|gov|se|ch|de|nl|eu|net|ir|edu|info|ac.(\w{2,3})))",
+                                          singleWords[i])
+                            if R:
+                                singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
+                                c = False
+                                break
+                        if c:
+                            U = self.requiredDotsRegex.search(singleWords[i])
+                            if U:
+                                singleWords[i] = singleWords[i][:U.start()].replace(".", ".\n") + singleWords[
+                                                                                                      i][
+                                                                                                  U.start():U.end()] + \
+                                                 singleWords[i][U.end():].replace(".", ".\n")
+                            else:
+                                singleWords[i] = singleWords[i].replace(".", ".\n")
 
                 clipboard_content = re.sub(r'\u000D\u000A|[\u000A\u000B\u000C\u000D\u0085\u2028\u2029]', '\n',
                                            clipboard_content)
