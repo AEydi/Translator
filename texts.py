@@ -2,10 +2,12 @@ welcomeTextWithoutEmoji = '<div><font style="font-size:13pt">Hi&nbsp;:)</font></
                           'style="font-size:10pt">Copy&nbsp;any&nbsp;text&nbsp;for&nbsp;translation<br' \
                           '>Press&nbsp;H&nbsp;to&nbsp;show&nbsp;Instruction</font></div><div><font ' \
                           'style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div> '
+
 welcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻</font></div><div><font ' \
               'style="font-size:10pt">Copy&nbsp;any&nbsp;text&nbsp;for&nbsp;translation<br>Press&nbsp;H' \
               '&nbsp;to&nbsp;show&nbsp;Instruction</font></div><div><font ' \
               'style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div> '
+
 instructionText = '<div><font style="font-size:10pt">Mouse&nbsp;Actions:<br>Translate->&nbsp;translate' \
                   '&nbsp;anything&nbsp;in&nbsp;clipboard<br>&nbsp;&nbsp;&nbsp;&nbsp;click&nbsp;on&nbsp' \
                   ';this,&nbsp;translate&nbsp;selected&nbsp;text&nbsp;on&nbsp;app<br>Previous/next' \
@@ -31,3 +33,41 @@ instructionText = '<div><font style="font-size:10pt">Mouse&nbsp;Actions:<br>Tran
                   '&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,' \
                   '&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows' \
                   '&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div> '
+
+sourceLanguageList = {'EN US': 'en-us',
+                      'EN UK': 'en-uk',
+                      'Persian': 'fa',
+                      'Auto detect': 'auto',
+                      'Arabic': 'ar',
+                      'Danish': 'da',
+                      'German': 'de',
+                      'Spanish': 'es',
+                      'French': 'fr',
+                      'Italian': 'it',
+                      'Japanese': 'ja',
+                      'Korean': 'ko',
+                      'Latin': 'la',
+                      'Dutch': 'nl',
+                      'Portuguese': 'pt',
+                      'Russian': 'ru',
+                      'Swedish': 'sv',
+                      'Turkish': 'tr',
+                      'Chinese': 'zh-CN'}
+
+destinationLanguageList = {'Persian': 'fa',
+                           'English': 'en',
+                           'Arabic': 'ar',
+                           'Danish': 'da',
+                           'German': 'de',
+                           'Spanish': 'es',
+                           'French': 'fr',
+                           'Italian': 'it',
+                           'Japanese': 'ja',
+                           'Korean': 'ko',
+                           'Latin': 'la',
+                           'Dutch': 'nl',
+                           'Portuguese': 'pt',
+                           'Russian': 'ru',
+                           'Swedish': 'sv',
+                           'Turkish': 'tr',
+                           'Chinese': 'zh-CN'}

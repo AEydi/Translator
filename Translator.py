@@ -2,23 +2,22 @@ import os
 import platform
 import re
 import sys
-import threading
 import time
 import uuid
 from datetime import datetime
 
+from ClipboardWatcher import ClipboardWatcher
+import utility
 import genanki
 import pyperclip
-import pyttsx3
-import pyttsx3.drivers
 from PyQt5 import QtGui
-from PyQt5.QtCore import QThread, pyqtSignal, Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu
 from gtts import gTTS
-from playsound import playsound
 
 import texts
 import wordsHaveDot
+from TextToSpeech import TextToSpeech
 from googletrans import Translator
 from spellchecker import SpellChecker
 
@@ -26,216 +25,6 @@ if platform.system() == "Windows" and platform.release() == "10":
     win10 = True
 else:
     win10 = False
-
-
-class TextToSpeech(threading.Thread):
-    signal = pyqtSignal('PyQt_PyObject')
-
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self._stopping = False
-        self._stop_event = threading.Event()
-
-        # set win10 tts engine property
-        if win10:
-            self.engine = pyttsx3.init()
-            self.rate = self.engine.getProperty('rate')
-            self.engine.setProperty('rate', 150)
-            self.engine.setProperty('volume', 0.9)
-            self.voices = self.engine.getProperty('voices')
-            self.engine.setProperty('voice', self.voices[1].id)  # self.voices[1] is female voice
-
-        # use this var to receive text
-        self.ReceivedText = ''
-        # var for compare text is new or not for play tts
-        self.previousText = ''
-        # var for compare text is new or not and don't download tts again
-        self.lastPlayedText = ''
-        # var for set tts engine "win10" or "google tts"
-        self.ttsEngine = 'win'
-        # var for set google tts language
-        self.ttsLang = 'en-us'
-        # this var for handle os.remove bug in win7 --> create file with new name
-        self.filesNumberHandelOsRemoveBug = 1
-
-        # delete .mp3 file if exist in directory
-        if platform.system() == 'Windows':
-            for file in os.listdir('.\\'):
-                if not file.endswith(".mp3"):
-                    continue
-                os.remove(file)
-        else:
-            for file in os.listdir('./'):
-                if not file.endswith(".mp3"):
-                    continue
-                os.remove(file)
-
-    def Read(self, ReceivedText):
-        self.ReceivedText = ReceivedText  # receive text for tts
-
-    def run(self):
-        while not self._stopping:
-            if (self.ReceivedText != self.previousText) and (self.ReceivedText != '') and (self.ttsLang != 'fa'):
-                if win10 and self.ttsEngine == 'win' and self.ttsLang == 'en-us':
-                    time.sleep(0.5)
-                    self.engine.say(self.ReceivedText)
-                    self.engine.runAndWait()
-                else:
-                    if not self.ReceivedText == self.lastPlayedText:  # check file exist or not
-                        if os.path.exists('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3'):
-                            os.remove('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3')
-
-                            # if after delete file exist in directory create file with new name
-                            if os.path.exists('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3'):
-                                self.filesNumberHandelOsRemoveBug = self.filesNumberHandelOsRemoveBug + 1
-                        # if tts language is not set reset it to default
-                        if self.ttsLang == '':
-                            self.ttsLang = 'en-us'
-
-                        var = gTTS(text=self.ReceivedText, lang=self.ttsLang)
-                        var.save('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3')
-
-                    # if created file not empty play that
-                    if os.stat('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3').st_size > 290:
-                        playsound('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3')
-                    self.lastPlayedText = self.ReceivedText
-                self.previousText = self.ReceivedText
-            time.sleep(0.1)
-
-    def stop(self):
-        self._stopping = True
-        self._stop_event.set()
-        sys.exit()
-
-    def stopped(self):
-        return self._stop_event.is_set()
-
-
-class ClipboardWatcher(QThread):
-    signal = pyqtSignal('PyQt_PyObject')
-
-    def __init__(self):
-        QThread.__init__(self)
-        self._pause = 0.5  # watch clipboard interval
-        self._stopping = False
-        self._stop_event = threading.Event()
-
-    def run(self):
-        recentValue = "$%^DFrGSjnkfu64784&@# 544#$"  # random word to not match in start
-        while not self._stopping:
-            clipboardValue = pyperclip.paste()
-
-            # if clipboard is changed (copy new text) send that for translate
-            if clipboardValue != recentValue:
-                recentValue = clipboardValue
-                self.signal.emit(clipboardValue)
-            time.sleep(self._pause)
-
-    def stop(self):
-        self._stopping = True
-        self._stop_event.set()
-        sys.exit()
-
-    def stopped(self):
-        return self._stop_event.is_set()
-
-
-def readIconsColorFromTextFile():
-    try:
-        fileRead = open("color.txt", "r")
-        color = fileRead.read()
-        fileRead.close()
-    except (Exception,):
-        color = 'd'
-        try:
-            fileWrite = open('color.txt', "w")
-            fileWrite.write('d')
-            fileWrite.close()
-        except (Exception,):
-            pass
-    return color
-
-
-def createAnkiCardsModel():
-    CardModel = genanki.Model(
-        1380120064,
-        'pyNote',
-        fields=[
-            {'name': 'Front'},
-            {'name': 'Back'},
-            {'name': 'MyMedia'},
-        ],
-        templates=[
-            {
-                'name': 'Card 1',
-                'qfmt': '{{Front}}{{MyMedia}}',
-                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
-            },
-        ],
-        css='''
-            .card {
-            font-family: IRANSansWeb Medium;
-            font-size: 20px;
-            text-align: center;
-            color: black;
-            background-color: white;
-            }
-            .card.night_mode {
-            font-family: IRANSansWeb Medium;
-            font-size: 20px;
-            text-align: center;
-            color: white;
-            background-color: black;
-            }
-        ''')
-    return CardModel
-
-
-def myDeckName():
-    try:
-        fileRead = open("deckName.txt", "r")
-        myDeckName = fileRead.read()
-        fileRead.close()
-    except Exception:
-        myDeckName = 'IMPORTED'
-        try:
-            fileWrite = open('deckName.txt', "w")
-            fileWrite.write('IMPORTED')
-            fileWrite.close()
-        except (Exception,):
-            pass
-    return myDeckName
-
-
-def createExportFolder():
-    if platform.system() == 'Windows':
-        exportFolderPath = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop\\Export')
-    else:
-        exportFolderPath = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop/Export')
-
-    if not os.path.exists(exportFolderPath):
-        os.mkdir(exportFolderPath)
-    return exportFolderPath
-
-
-def isTextURL(text):
-    return re.search(r'((^(https|ftp|http):\/\/)|(^www.\w+\.)|(^))(\w+\.)(com|io|org|net|ir|edu|info|ac.(\w{2,'
-                     r'3}))($|\/)', text) is None
-
-
-def isTextPassword(text):
-    return ((text.count(' ') > 2) | ((not any(c in text for c in ['@', '#', '$', '&'])) & (False if False in [
-        False if (len(re.findall('([0-9])', t)) > 0) & (len(re.findall('([0-9])', t)) != len(t)) else True for t in
-        text.split(' ')] else True)))
-
-
-def wordContainDot(word):
-    return '.' in word
-
-
-def wordContainWordHaveDot(k, word):
-    lineStart = "(^[^\w]|^|\n)"
-    return re.search(r"" + lineStart + wordsHaveDot.words[k].replace(".", "\.") + "", word)
 
 
 class MyApp(QLabel):
@@ -250,13 +39,13 @@ class MyApp(QLabel):
         self._previousAnswerOnlyText = ""  # used to going backward and forward
         self._lastClipboard = ""
         self._previousClipboard = ""  # used to going backward and forward
-        self.exportFolderPath = createExportFolder()
-        self.ankiCardModel = createAnkiCardsModel()
-        self.myDeck = genanki.Deck(2054560191, myDeckName())
+        self.exportFolderPath = utility.createExportFolder()
+        self.ankiCardModel = utility.createAnkiCardsModel()
+        self.myDeck = genanki.Deck(2054560191, utility.myDeckName())
         self.myAnkiPackage = genanki.Package(self.myDeck)
         self._initTime = datetime.now()  # save deck with date name
         self.savedWordsList = []  # list of previous saved word
-        self.iconsColor = readIconsColorFromTextFile()
+        self.iconsColor = utility.readIconsColorFromTextFile()
         self.translator = Translator()  # translator object
         self.watcher = ClipboardWatcher()
         self.watcher.signal.connect(self.databack)
@@ -277,43 +66,9 @@ class MyApp(QLabel):
         self._autoEdit = True
         self.requiredDotsRegex = re.compile(
             r"((^|[^\w])([a-zA-Z]\.)+)(\w+\.|[^\w]|\w|$)|([^\w]|\d)\.\d")  # required dots i.e. i.5 2.5 d.o.t .6 $2.
-        self.sourceLanguageList = {'EN US': 'en-us',
-                                   'EN UK': 'en-uk',
-                                   'Persian': 'fa',
-                                   'Auto detect': 'auto',
-                                   'Arabic': 'ar',
-                                   'Danish': 'da',
-                                   'German': 'de',
-                                   'Spanish': 'es',
-                                   'French': 'fr',
-                                   'Italian': 'it',
-                                   'Japanese': 'ja',
-                                   'Korean': 'ko',
-                                   'Latin': 'la',
-                                   'Dutch': 'nl',
-                                   'Portuguese': 'pt',
-                                   'Russian': 'ru',
-                                   'Swedish': 'sv',
-                                   'Turkish': 'tr',
-                                   'Chinese': 'zh-CN'}
+        self.sourceLanguageList = texts.sourceLanguageList
 
-        self.destinationLanguageList = {'Persian': 'fa',
-                                        'English': 'en',
-                                        'Arabic': 'ar',
-                                        'Danish': 'da',
-                                        'German': 'de',
-                                        'Spanish': 'es',
-                                        'French': 'fr',
-                                        'Italian': 'it',
-                                        'Japanese': 'ja',
-                                        'Korean': 'ko',
-                                        'Latin': 'la',
-                                        'Dutch': 'nl',
-                                        'Portuguese': 'pt',
-                                        'Russian': 'ru',
-                                        'Swedish': 'sv',
-                                        'Turkish': 'tr',
-                                        'Chinese': 'zh-CN'}
+        self.destinationLanguageList = texts.destinationLanguageList
 
         self.customContextMenuRequested.connect(self.contextMenuEvent)
 
@@ -584,17 +339,17 @@ class MyApp(QLabel):
 
         singleWords = re.split(r"\s", clipboard_content)
         for i in range(len(singleWords)):
-            if wordContainDot(singleWords[i]) and self.wordContainNotRequiredDots(singleWords[i]) and (
+            if utility.wordContainDot(singleWords[i]) and self.wordContainNotRequiredDots(singleWords[i]) and (
                     not singleWords[i].lower() in wordsHaveDot.words):
                 singleWords[i] = re.sub(r"^\.+", ".\n", singleWords[i])
                 c = True
                 for k in range(len(wordsHaveDot.words)):
-                    R = wordContainWordHaveDot(k, singleWords[i])
+                    R = utility.wordContainWordHaveDot(k, singleWords[i])
                     if R:
-                        R1 = wordContainWordHaveDot(k + 1, singleWords[i])
+                        R1 = utility.wordContainWordHaveDot(k + 1, singleWords[i])
                         if R1:
                             R = R1
-                            R2 = wordContainWordHaveDot(k + 2, singleWords[i])
+                            R2 = utility.wordContainWordHaveDot(k + 2, singleWords[i])
                             if R2:
                                 R = R2
                         singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
@@ -625,10 +380,11 @@ class MyApp(QLabel):
 
     def databack(self, clipboard_content):
         self.spell_checked = False
-        if (self._allow_translation & self._translator_onOff) & (clipboard_content != '') & isTextURL(
-                clipboard_content) & (self._lastClipboard != clipboard_content) & (
-                re.search(r'</.+?>', clipboard_content) is None) & (self._lastAnswerOnlyText != clipboard_content) & (
-                not self._appsFirstStart) & isTextPassword(clipboard_content):
+        if (self._allow_translation and self._translator_onOff) and (clipboard_content != '') and utility.isTextURL(
+                clipboard_content) and (self._lastClipboard != clipboard_content) and (
+                re.search(r'</.+?>', clipboard_content) is None) and (
+                self._lastAnswerOnlyText != clipboard_content) and (not self._appsFirstStart) and utility.isTextPassword(
+            clipboard_content):
 
             if clipboard_content == 'TarjumehDobAreHLach':  # key for update lang
                 clipboard_content = pyperclip.paste()
@@ -649,7 +405,13 @@ class MyApp(QLabel):
                 self.spellCandidate.clear()
                 for i in range(min(6, len(sortedItem))):
                     self.spellCandidate.append(sortedItem[i][0])
-                message = '<div>I&nbsp;think<font color="#FFC107">&nbsp;' + clipboard_content + '&nbsp;</font>not&nbsp;correct,&nbsp;if&nbsp;I’m&nbsp;wrong&nbsp;press&nbsp;0&nbsp;or&nbsp;select&nbsp;one:<br></div><div>'
+                message = '<div>I&nbsp;think<font color="#FFC107">&nbsp;' + clipboard_content + '&nbsp;</font>not' \
+                                                                                                '&nbsp;correct,' \
+                                                                                                '&nbsp;if&nbsp;I’m' \
+                                                                                                '&nbsp;wrong&nbsp' \
+                                                                                                ';press&nbsp;0&nbsp' \
+                                                                                                ';or&nbsp;select&nbsp' \
+                                                                                                ';one:<br></div><div> '
                 for i in range(len(self.spellCandidate)):
                     message = message + str(i + 1) + ':&nbsp;' + self.spellCandidate[i] + "&nbsp;&nbsp;"
                 message = message + '</div>'

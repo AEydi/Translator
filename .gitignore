@@ -3,3 +3,7 @@ __pycache__/Translator.cpython-38.pyc
 color.txt
 deckName.txt
 token.txt
+__pycache__/
+*.py[cod]
+spellchecker/__pycache__
+googletrans/__pycache__
