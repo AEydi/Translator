@@ -7,3 +7,11 @@ __pycache__/
 spellchecker/__pycache__/
 googletrans/__pycache__/
 /.idea/
+googletransNew/__init__.py
+googletransNew/clientN.py
+googletransNew/constantsN.py
+googletransNew/gtokenN.py
+googletransNew/modelsN.py
+googletransNew/urlsN.py
+googletransNew/utilsN.py
+test.py
