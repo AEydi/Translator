@@ -12,16 +12,17 @@ import genanki
 import pyperclip
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu
+from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu, QSizePolicy
 from gtts import gTTS
 
 import texts
 import wordsHaveDot
 from TextToSpeech import TextToSpeech
-from googletrans import Translator
+from googletrans import TextTranslator
+from googletrans import WordTranslator
 from spellchecker import SpellChecker
 
-if platform.system() == "Windows" and platform.release() == "10":
+if platform.system() == "Windows" and (platform.release() == "10" or platform.release() == "11"):
     win10 = True
 else:
     win10 = False
@@ -46,9 +47,10 @@ class MyApp(QLabel):
         self._initTime = datetime.now()  # save deck with date name
         self.savedWordsList = []  # list of previous saved word
         self.iconsColor = utility.readIconsColorFromTextFile()
-        self.translator = Translator()  # translator object
+        self.textTranslator = TextTranslator()  # translator object
+        self.wordTranslator = WordTranslator()
         self.watcher = ClipboardWatcher()
-        self.watcher.signal.connect(self.databack)
+        self.watcher.signal.connect(self.mainEditTranslatePrint)
         self.textToSpeechObject = TextToSpeech()
         self.textToSpeechObject.start()
         self.tts_onOff_flag = False  # on off text to speech
@@ -100,6 +102,7 @@ class MyApp(QLabel):
                 QApplication.instance().desktop().availableGeometry()
             )
         )
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum))
 
     def contextMenuEvent(self, event):
         global selectTTSEngineButton
@@ -308,12 +311,12 @@ class MyApp(QLabel):
             if self.hasSelectedText():
                 if self.selectedText() == pyperclip.paste():
                     self._allow_translation = True
-                    self.databack('TarjumehDobAreHLach')
+                    self.mainEditTranslatePrint('TarjumehDobAreHLach')
                 else:
                     pyperclip.copy(self.selectedText())
             else:
                 self._allow_translation = True
-                self.databack('TarjumehDobAreHLach')
+                self.mainEditTranslatePrint('TarjumehDobAreHLach')
 
     def wordContainNotRequiredDots(self, word):
         return '.' in self.requiredDotsRegex.sub("", word)
@@ -364,8 +367,7 @@ class MyApp(QLabel):
                 if c:
                     U = self.requiredDotsRegex.search(singleWords[i])
                     if U:
-                        singleWords[i] = singleWords[i][:U.start()].replace(".", ".\n") + singleWords[
-                                                                                              i][
+                        singleWords[i] = singleWords[i][:U.start()].replace(".", ".\n") + singleWords[i][
                                                                                           U.start():U.end()] + \
                                          singleWords[i][U.end():].replace(".", ".\n")
                     else:
@@ -378,13 +380,98 @@ class MyApp(QLabel):
         clipboard_content = clipboard_content.replace("*$_#", "...")  # dont inter enter for ...
         return clipboard_content
 
-    def databack(self, clipboard_content):
+    def printToQT(self, text):
+        self.setText(text)
+        self.adjustSize()
+        self._appIsMinimize = False
+
+    def removeHtmlTags(self, text):
+        return re.sub('\<.+?\>', "", text.replace("&nbsp;", " ").replace("<br>", '\n').replace('</div>', '\n'))
+
+    def createAns(self, eachDef, dontAddMarginAfterType):
+        DEF = 0
+        EXAMPLE = 1
+        EXTRA_EXPLAIN = 4
+        SYNONYMS = 5
+        html = ''
+        if dontAddMarginAfterType:
+            html += '<div>'
+            dontAddMarginAfterType = False
+        else:
+            html += '<div style="margin-top:5px";>'
+        if len(eachDef) > EXTRA_EXPLAIN and eachDef[EXTRA_EXPLAIN] is not None:
+            html += '<span style = "font-size: 7.5pt;line-height: 11pt ;background-color:#424242;padding-left: ' \
+                    '1pt;padding-right: 1pt;"> <font color="#b0bec5"> ' + '</font></span>  <span style = "font-size: ' \
+                    '7.5pt;line-height: 11pt;background-color:#424242;padding-left: 1pt;padding-right: 1pt;"> <font ' \
+                    'color="#b0bec5">'.join([inner for outer in eachDef[EXTRA_EXPLAIN] for inner in outer]).upper() + \
+                    '</font></span> '
+        html += eachDef[DEF] + '</div>'
+        if len(eachDef) > EXAMPLE and eachDef[EXAMPLE] is not None:
+            html += '<div><font color="#ccaca0">' + eachDef[
+                EXAMPLE] + '</font></div>'
+        if len(eachDef) > SYNONYMS and eachDef[SYNONYMS] is not None:
+            synonyms = eachDef[5]
+            synonym = ''
+            for synType in synonyms:
+                syn = '</font>, <font color="#ae8c81">'.join(
+                    [inner for outer in synType[0][:4] for inner in outer])
+                syn = '<font color="#ae8c81">' + syn + '</font>'
+                if len(synType) > 1:
+                    typ = ', '.join(
+                        [inner for outer in synType[1] for inner in outer])
+                    synonym += '<span style = "font-size: 7.5pt;line-height: 11pt ' \
+                               ';background-color:#424242;padding-left: 1pt;padding-right: 1pt;">&nbsp;<font ' \
+                               'color="#b0bec5">' + typ.upper() + '</font>&nbsp;</span>: ' + syn
+                    continue
+                synonym += syn
+            html += '<div style = "font-size: 9.5pt;">' + synonym + '</div>'
+        return html, dontAddMarginAfterType
+
+    def definitionsToHtml(self, definitions, content, definitionsCount):
+        if definitionsCount != 0:
+            for defType in definitions[0]:
+                HAS_TYPE = 0
+                if defType[HAS_TYPE]:
+                    content += '<div style="margin-top:8px";><font color="#FFC107">' + defType[
+                        0].capitalize() + '</font></div>'
+                DEFS = 1
+                thisTypeDefs = defType[DEFS]
+                dontAddMarginAfterType = True
+                for eachDef in thisTypeDefs:
+                    html = ''
+                    SHOW = 2
+                    if definitionsCount > 8:
+                        if len(eachDef) > SHOW and eachDef[SHOW]:
+                            html, dontAddMarginAfterType = self.createAns(eachDef, dontAddMarginAfterType)
+                        else:
+                            continue
+                    else:
+                        html, dontAddMarginAfterType = self.createAns(eachDef, dontAddMarginAfterType)
+                    content += html
+        return content
+
+    def headerText(self, clipboard_content, ansData):
+        headerText = '<div><font color="#F50057">' + clipboard_content.capitalize() + '</font>'
+        pronunciation = ansData[0][0]
+        if pronunciation is not None:
+            headerText = headerText + ' /' + pronunciation + '/'
+        seeAlso = ansData[3][3]
+        if seeAlso is not None:
+            seeAlso = ', '.join(seeAlso[0])
+            headerText = headerText + '&nbsp;&nbsp;&nbsp;' + '<span style="font-size:8pt;"><font ' \
+                                                             'color="#b0bec5">SEE&nbsp;ALSO' \
+                                                             ':</font></span>&nbsp;<font ' \
+                                                             'color="#42A5F5">' + seeAlso + '</font> '
+        headerText += '</div>'
+        return headerText
+
+    def mainEditTranslatePrint(self, clipboard_content):
         self.spell_checked = False
         if (self._allow_translation and self._translator_onOff) and (clipboard_content != '') and utility.isTextURL(
                 clipboard_content) and (self._lastClipboard != clipboard_content) and (
                 re.search(r'</.+?>', clipboard_content) is None) and (
-                self._lastAnswerOnlyText != clipboard_content) and (not self._appsFirstStart) and utility.isTextPassword(
-            clipboard_content):
+                self._lastAnswerOnlyText != clipboard_content) and (
+                not self._appsFirstStart) and utility.isTextPassword(clipboard_content):
 
             if clipboard_content == 'TarjumehDobAreHLach':  # key for update lang
                 clipboard_content = pyperclip.paste()
@@ -392,7 +479,6 @@ class MyApp(QLabel):
 
             if self._autoEdit:
                 clipboard_content = self.autoEditDots(clipboard_content)
-
             if self._src in ['en', 'de', 'es', 'fr', 'pt']:
                 self.spell = SpellChecker(language=self._src, distance=2)
             if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (
@@ -419,9 +505,7 @@ class MyApp(QLabel):
                 self._previousClipboard, self._lastClipboard = self._lastClipboard, ' '
                 self._previousAnswerOnlyText = self._lastAnswer
                 self._lastAnswer = message
-                self.setText(self._lastAnswer)
-                self.adjustSize()
-                self._appIsMinimize = False
+                self.printToQT(self._lastAnswer)
                 self.spell_checked = True
             else:
                 self.check_word_correction = True
@@ -429,60 +513,45 @@ class MyApp(QLabel):
                 condition = True  # try 3 time for translate
                 while condition:
                     try:
-                        ans = self.translator.translate(clipboard_content, dest=self._dest, src=self._src)
-                        if self._src == 'auto':
-                            self.textToSpeechObject.ttsLang = ans.src
-                        self._previousClipboard = self._lastClipboard
-                        self._lastClipboard = clipboard_content
-                        alltrans = ans.extra_data['all-translations']
-                        define = ans.extra_data['definitions']
-                        s = ""
-                        if alltrans is not None:
-                            for i in range(len(alltrans)):
-                                cash = ""
-                                if len(alltrans[i][2][0]) < 4:
-                                    ratio = 1
-                                else:
-                                    ratio = 1 / float(alltrans[i][2][0][3])
-                                s += '<div><font color="#FFC107">' + alltrans[i][0] + ': </font>'  # اسم فعل قید و ...
-                                for j in range(len(alltrans[i][2])):
-                                    if len(alltrans[i][2][j]) == 4:
-                                        if alltrans[i][2][j][3] * ratio > 0.1:
-                                            cash += alltrans[i][2][j][0] + ' - '
-                                    else:
-                                        cash += alltrans[i][2][j][0] + ' - '
-                                s += cash[0:-3] + '</div>'
-                                cash = ""
+                        ans = self.wordTranslator.translate(clipboard_content.lower(), dest=self._dest, src=self._src)
+                        ansData = ans.extra_data['parsed']
+                        HAVE_DEFINITION = 4
+                        if len(ansData) == HAVE_DEFINITION:
+                            if self._src == 'auto':
+                                SOURCE = 2
+                                self.textToSpeechObject.ttsLang = ansData[SOURCE]
+                            self._previousClipboard = self._lastClipboard
+                            self._lastClipboard = clipboard_content
+                            content = ''
+                            content += self.headerText(clipboard_content, ansData)
+                            definitions = ansData[3][1]
+                            definitionsCount = definitions[1] if definitions is not None else 0
+                            content = self.definitionsToHtml(definitions, content, definitionsCount)
+                            self._previousAnswer = self._lastAnswer
+                            self._lastAnswer = content
+                            self._previousAnswerOnlyText = self._lastAnswerOnlyText
+                            self._lastAnswerOnlyText = self.removeHtmlTags(self._lastAnswer)
+                            self.printToQT(content.replace('\n', '<br>'))
+                            condition = False
+
                         else:
-                            if define is not None:
-                                if self._dest == 'fa':
-                                    s = '<div><font color="#FFC107">معنی: </font>' + ans.text + '</div>'
-                                if self._dest == 'en':
-                                    s = '<div><font color="#FFC107">Meaning: </font>' + ans.text + '</div>'
+                            ans = self.textTranslator.translate(clipboard_content, dest=self._dest, src=self._src)
+                            if self._src == 'auto':
+                                self.textToSpeechObject.ttsLang = ans.src
+                            self._previousClipboard = self._lastClipboard
+                            self._lastClipboard = clipboard_content
+                            ans.text = re.sub(r'((^|\n)\d+)\n', r'\g<1>. ', ans.text)
+                            ans.text = ans.text.replace('\n', "<br>")
+                            if self._dest in ['fa', 'ar']:
+                                s = '<div dir="rtl">' + ans.text + '</div>'
                             else:
-                                ans.text = ans.text.replace('\n', "<br>")
-                                if self._dest in ['fa', 'ar']:
-                                    s = '<div dir="rtl">' + ans.text + '</div>'
-                                else:
-                                    s = '<div>' + ans.text + '</div>'
-                        if define is not None:
-                            for i in range(len(define)):
-                                for j in range(len(define[i][1])):
-                                    s += '<div style="text-align:left;">' + define[i][1][j][
-                                        0].capitalize() + '</font></div>'
-                                    if len(define[i][1][j]) == 3:
-                                        s += '<div style="text-align:left;"><em><font color="#ccaca0">"' + \
-                                             define[i][1][j][2] + '"</font></em></div>'
-                        self._previousAnswer = self._lastAnswer
-                        self._lastAnswer = s
-                        self._previousAnswerOnlyText = self._lastAnswerOnlyText
-                        self._lastAnswerOnlyText = re.sub('\<.+?\>', "",
-                                                          self._lastAnswer.replace("<br>", '\n').replace('</div>',
-                                                                                                         '\n'))
-                        self.setText(s.replace('\n', '<br>'))
-                        self.adjustSize()
-                        condition = False
-                        self._appIsMinimize = False
+                                s = '<div>' + ans.text + '</div>'
+                            self._previousAnswer = self._lastAnswer
+                            self._lastAnswer = s
+                            self._previousAnswerOnlyText = self._lastAnswerOnlyText
+                            self._lastAnswerOnlyText = self.removeHtmlTags(self._lastAnswer)
+                            self.printToQT(s.replace('\n', '<br>'))
+                            condition = False
                     except Exception as e:
                         time.sleep(1)
                         tryCount = tryCount + 1
@@ -493,10 +562,10 @@ class MyApp(QLabel):
                             tryCount) + ' time.<br><br>' + str(e) + '</div>'
                         if str(e) == "'NoneType' object has no attribute 'group'":
                             self._lastAnswer = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(
-                                tryCount) + ' time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp;a&nbsp;token&nbsp;from&nbsp;google.translate.com<br>try again or restart the App.</div>'
-                        self.setText(self._lastAnswer)
-                        self.adjustSize()
-                        self._appIsMinimize = False
+                                tryCount) + 'time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp' \
+                                            ';a&nbsp;token&nbsp;from&nbsp;google.translate.com<br>try again or ' \
+                                            'restart the App.</div> '
+                        self.printToQT(self._lastAnswer)
                         QApplication.processEvents()
                         if tryCount > 2:
                             condition = False
@@ -521,7 +590,7 @@ class MyApp(QLabel):
         if self.spell_checked:
             if event.key() == 48 or event.key() == 1776:
                 self.check_word_correction = False
-                self.databack('TarjumehDobAreHLach')
+                self.mainEditTranslatePrint('TarjumehDobAreHLach')
             if event.key() == 49 or event.key() == 1777:
                 pyperclip.copy(self.spellCandidate[0])
             if event.key() == 50 or event.key() == 1778:
@@ -539,8 +608,7 @@ class MyApp(QLabel):
             self._previousAnswer, self._lastAnswer = self._lastAnswer, texts.instructionText
             self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, ''
             self._previousClipboard, self._lastClipboard = self._lastClipboard, ''
-            self.setText(self._lastAnswer)
-            self.adjustSize()
+            self.printToQT(self._lastAnswer)
 
         if (event.key() == Qt.Key_S or event.key() == 1587) & (self._lastClipboard != ''):
             self.saveAnki()
@@ -590,8 +658,7 @@ class MyApp(QLabel):
             self._appIsMinimize = True
         else:
             self._appIsMinimize = False
-        self.setText(self._lastAnswer)
-        self.adjustSize()
+        self.printToQT(self._lastAnswer)
 
     def isNotWordSaved(self):
         wordIsAdded = True
