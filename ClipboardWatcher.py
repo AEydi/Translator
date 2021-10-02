@@ -16,12 +16,12 @@ class ClipboardWatcher(QThread):
         self._stop_event = threading.Event()
 
     def run(self):
-        recentValue = "$%^DFrGSjnkfu64784&@# 544#$"  # random word to not match in start
+        recentValue = pyperclip.paste()
         while not self._stopping:
             clipboardValue = pyperclip.paste()
 
             # if clipboard is changed (copy new text) send that for translate
-            if clipboardValue != recentValue:
+            if clipboardValue != recentValue and clipboardValue != '' and clipboardValue != ' ':
                 recentValue = clipboardValue
                 self.signal.emit(clipboardValue)
             time.sleep(self._pause)

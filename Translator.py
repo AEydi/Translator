@@ -2,6 +2,7 @@ import os
 import platform
 import re
 import sys
+import copy
 import time
 import uuid
 from datetime import datetime
@@ -28,18 +29,22 @@ else:
     win10 = False
 
 
+def removeHtmlTags(text):
+    return re.sub('\<.+?\>', "", text.replace("&nbsp;", " ").replace("<br>", '\n').replace('</div>', '\n'))
+
+
 class MyApp(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setUIProperty()
         self.setWelcomeText()
-        self._appsFirstStart = True
+        self.appHistory = []
+        self.currentState = 0
+        self.flagHandleExplainState = False
+        self.numberPressedStorage = ''
         self._lastAnswer = texts.welcomeText
         self._lastAnswerOnlyText = ""
-        self._previousAnswer = " "  # used to going backward and forward
-        self._previousAnswerOnlyText = ""  # used to going backward and forward
         self._lastClipboard = ""
-        self._previousClipboard = ""  # used to going backward and forward
         self.exportFolderPath = utility.createExportFolder()
         self.ankiCardModel = utility.createAnkiCardsModel()
         self.myDeck = genanki.Deck(2054560191, utility.myDeckName())
@@ -82,6 +87,7 @@ class MyApp(QLabel):
         else:
             self.setText(texts.welcomeText)
         self.adjustSize()
+        self.flagHandleExplainState = False
 
     def setUIProperty(self):
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
@@ -110,13 +116,9 @@ class MyApp(QLabel):
 
         translateButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/search.png'), "Translate")
 
-        goBackOrNextInAnswersButton = contextMenu.addAction("Previous")
-        if self._current_state:
-            goBackOrNextInAnswersButton.setText('Previous')
-            goBackOrNextInAnswersButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/back.png'))
-        else:
-            goBackOrNextInAnswersButton.setText('Next')
-            goBackOrNextInAnswersButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/next.png'))
+        backInAnswersButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/back.png'), "Previous")
+        if self.currentState != len(self.appHistory):
+            nextInAnswersButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/Next.png'), "Next")
 
         minimizeMaximizeButton = contextMenu.addAction('Minimize')
         if self._appIsMinimize:
@@ -220,7 +222,7 @@ class MyApp(QLabel):
         copyMenu.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/copy.png'))
         copySelectedTextWithoutTranslateButton = copyMenu.addAction(
             QtGui.QIcon('icons/' + self.iconsColor + '/copy.png'), "Copy without Translate")
-        copyAllWithHTMLtagsButton = copyMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/art.png'),
+        copyAllWithHtmlTagsButton = copyMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/art.png'),
                                                        "Copy all as HTML")
         copyAllAsTextButton = copyMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/text.png'),
                                                  "Copy all as Text")
@@ -287,9 +289,11 @@ class MyApp(QLabel):
         if selectedAction == saveAnswerToAnkiCardButton:
             self.saveAnki()
 
-        if selectedAction == goBackOrNextInAnswersButton:
-            self._current_state = not self._current_state
-            self.swapBackNextAnswer()
+        if self.currentState != len(self.appHistory) and selectedAction == nextInAnswersButton:
+            self.goForward()
+
+        if selectedAction == backInAnswersButton:
+            self.goBackward()
 
         if selectedAction == minimizeMaximizeButton:
             self.appMinMaxChange(not self._appIsMinimize)
@@ -301,22 +305,33 @@ class MyApp(QLabel):
             self._allow_translation = False
             pyperclip.copy(self.selectedText())
 
-        if selectedAction == copyAllWithHTMLtagsButton:
-            pyperclip.copy(self._lastAnswer.replace('left', 'center'))
+        if selectedAction == copyAllWithHtmlTagsButton:
+            self._allow_translation = False
+            pyperclip.copy(self.listToHtml(self.appHistory[self.currentState - 1][1]))
 
         if selectedAction == copyAllAsTextButton:
-            pyperclip.copy(self._lastAnswerOnlyText)
+            self._allow_translation = False
+            pyperclip.copy(removeHtmlTags(self.listToHtml(self.appHistory[self.currentState - 1][1])))
 
         if selectedAction == translateButton:
             if self.hasSelectedText():
-                if self.selectedText() == pyperclip.paste():
-                    self._allow_translation = True
-                    self.mainEditTranslatePrint('TarjumehDobAreHLach')
-                else:
-                    pyperclip.copy(self.selectedText())
-            else:
-                self._allow_translation = True
-                self.mainEditTranslatePrint('TarjumehDobAreHLach')
+                pyperclip.copy(self.selectedText())
+            elif self.currentState == 0:
+                self.mainEditTranslatePrint(pyperclip.paste())
+
+    def goForward(self):
+        self.currentState += 1
+        self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1]))
+        self.flagHandleExplainState = False
+
+    def goBackward(self):
+        if self.currentState != 0:
+            if not self.flagHandleExplainState:
+                self.currentState -= 1
+            self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1]))
+            self.flagHandleExplainState = False
+        if self.currentState == 0:
+            self.setWelcomeText()
 
     def wordContainNotRequiredDots(self, word):
         return '.' in self.requiredDotsRegex.sub("", word)
@@ -385,9 +400,6 @@ class MyApp(QLabel):
         self.adjustSize()
         self._appIsMinimize = False
 
-    def removeHtmlTags(self, text):
-        return re.sub('\<.+?\>', "", text.replace("&nbsp;", " ").replace("<br>", '\n').replace('</div>', '\n'))
-
     def createAns(self, eachDef, dontAddMarginAfterType):
         DEF = 0
         EXAMPLE = 1
@@ -403,8 +415,8 @@ class MyApp(QLabel):
             html += '<span style = "font-size: 7.5pt;line-height: 11pt ;background-color:#424242;padding-left: ' \
                     '1pt;padding-right: 1pt;"> <font color="#b0bec5"> ' + '</font></span>  <span style = "font-size: ' \
                     '7.5pt;line-height: 11pt;background-color:#424242;padding-left: 1pt;padding-right: 1pt;"> <font ' \
-                    'color="#b0bec5">'.join([inner for outer in eachDef[EXTRA_EXPLAIN] for inner in outer]).upper() + \
-                    '</font></span> '
+                    'color="#b0bec5">'.join([inner for outer in eachDef[EXTRA_EXPLAIN] for inner in outer]).upper(
+                    ) + '</font></span> '
         html += eachDef[DEF] + '</div>'
         if len(eachDef) > EXAMPLE and eachDef[EXAMPLE] is not None:
             html += '<div><font color="#ccaca0">' + eachDef[
@@ -427,28 +439,25 @@ class MyApp(QLabel):
             html += '<div style = "font-size: 9.5pt;">' + synonym + '</div>'
         return html, dontAddMarginAfterType
 
-    def definitionsToHtml(self, definitions, content, definitionsCount):
+    def definitionsToHtml(self, definitionsRaw, definitionsCount):
         if definitionsCount != 0:
-            for defType in definitions[0]:
+            definitions = []
+            for oneTypeDefsRaw in definitionsRaw[0]:
+                oneType = []
+                oneTypeDefs = []
                 HAS_TYPE = 0
-                if defType[HAS_TYPE]:
-                    content += '<div style="margin-top:8px";><font color="#FFC107">' + defType[
-                        0].capitalize() + '</font></div>'
+                if oneTypeDefsRaw[HAS_TYPE]:
+                    oneType = ['<div style="margin-top:8px";><font color="#FFC107">' + oneTypeDefsRaw[
+                        0].capitalize() + '</font></div>']
                 DEFS = 1
-                thisTypeDefs = defType[DEFS]
+                thisTypeDefs = oneTypeDefsRaw[DEFS]
                 dontAddMarginAfterType = True
                 for eachDef in thisTypeDefs:
-                    html = ''
-                    SHOW = 2
-                    if definitionsCount > 8:
-                        if len(eachDef) > SHOW and eachDef[SHOW]:
-                            html, dontAddMarginAfterType = self.createAns(eachDef, dontAddMarginAfterType)
-                        else:
-                            continue
-                    else:
-                        html, dontAddMarginAfterType = self.createAns(eachDef, dontAddMarginAfterType)
-                    content += html
-        return content
+                    defHtml, dontAddMarginAfterType = self.createAns(eachDef, dontAddMarginAfterType)
+                    oneTypeDefs.append(defHtml)
+                oneType.append(oneTypeDefs)
+                definitions.append(oneType)
+            return definitions
 
     def headerText(self, clipboard_content, ansData):
         headerText = '<div><font color="#F50057">' + clipboard_content.capitalize() + '</font>'
@@ -465,16 +474,61 @@ class MyApp(QLabel):
         headerText += '</div>'
         return headerText
 
+    def listToHtml(self, content, numReqClear=0):
+        definitionsCount = 0
+        html = ''
+        head = content[0]
+        html += head
+        if len(content) > 1:
+            for eachType in content[1]:
+                html += eachType[0]
+                for eachDef in eachType[1]:
+                    definitionsCount += 1
+                    if numReqClear != definitionsCount:
+                        html += eachDef
+        return html
+
+    def delDefFromTrans(self, numReqClear):
+        definitionsCount = 0
+        content = copy.deepcopy(self.appHistory[self.currentState - 1][1])
+        flag = False
+        for eachType in range(len(content[1])):
+            for eachDef in range(len(content[1][eachType][1])):
+                definitionsCount += 1
+                if numReqClear == definitionsCount:
+                    del content[1][eachType][1][eachDef]
+                    flag = True
+            if not content[1][eachType][1]:
+                del content[1][eachType]
+        if flag:
+            self.printToQT(self.listToHtml(content))
+            temp = self.appHistory[self.currentState - 1]
+            self.addToHistory(temp[0], content, temp[2], temp[3])
+
+    def addToHistory(self, clipboard_content, content, kindIsWord, saved=False):
+        del self.appHistory[self.currentState:]
+        self.appHistory.append([clipboard_content, content, kindIsWord, saved])
+        self.currentState += 1
+
+    def createMessageForSpellCheck(self, clipboard_content):
+        message = '<div>I&nbsp;think<font color="#FFC107">&nbsp;' + clipboard_content + '&nbsp;</font>not' \
+                                                                                        '&nbsp;correct,' \
+                                                                                        '&nbsp;if&nbsp;I’m' \
+                                                                                        '&nbsp;wrong&nbsp' \
+                                                                                        ';press&nbsp;0&nbsp' \
+                                                                                        ';or&nbsp;select&nbsp' \
+                                                                                        ';one:<br></div><div> '
+        for i in range(len(self.spellCandidate)):
+            message += str(i + 1) + ':&nbsp;' + self.spellCandidate[i] + "&nbsp;&nbsp;"
+        message += '</div>'
+        return message
+
     def mainEditTranslatePrint(self, clipboard_content):
         self.spell_checked = False
         if (self._allow_translation and self._translator_onOff) and (clipboard_content != '') and utility.isTextURL(
-                clipboard_content) and (self._lastClipboard != clipboard_content) and (
-                re.search(r'</.+?>', clipboard_content) is None) and (
-                self._lastAnswerOnlyText != clipboard_content) and (
-                not self._appsFirstStart) and utility.isTextPassword(clipboard_content):
+                clipboard_content) and (re.search(r'</.+?>', clipboard_content) is None) and utility.isTextPassword(
+                clipboard_content):
 
-            if clipboard_content == 'TarjumehDobAreHLach':  # key for update lang
-                clipboard_content = pyperclip.paste()
             clipboard_content = clipboard_content.strip()
 
             if self._autoEdit:
@@ -491,21 +545,9 @@ class MyApp(QLabel):
                 self.spellCandidate.clear()
                 for i in range(min(6, len(sortedItem))):
                     self.spellCandidate.append(sortedItem[i][0])
-                message = '<div>I&nbsp;think<font color="#FFC107">&nbsp;' + clipboard_content + '&nbsp;</font>not' \
-                                                                                                '&nbsp;correct,' \
-                                                                                                '&nbsp;if&nbsp;I’m' \
-                                                                                                '&nbsp;wrong&nbsp' \
-                                                                                                ';press&nbsp;0&nbsp' \
-                                                                                                ';or&nbsp;select&nbsp' \
-                                                                                                ';one:<br></div><div> '
-                for i in range(len(self.spellCandidate)):
-                    message = message + str(i + 1) + ':&nbsp;' + self.spellCandidate[i] + "&nbsp;&nbsp;"
-                message = message + '</div>'
-                self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, ' '
-                self._previousClipboard, self._lastClipboard = self._lastClipboard, ' '
-                self._previousAnswerOnlyText = self._lastAnswer
-                self._lastAnswer = message
-                self.printToQT(self._lastAnswer)
+                message = self.createMessageForSpellCheck(clipboard_content)
+                self.printToQT(message)
+                self.flagHandleExplainState = True
                 self.spell_checked = True
             else:
                 self.check_word_correction = True
@@ -520,52 +562,46 @@ class MyApp(QLabel):
                             if self._src == 'auto':
                                 SOURCE = 2
                                 self.textToSpeechObject.ttsLang = ansData[SOURCE]
-                            self._previousClipboard = self._lastClipboard
                             self._lastClipboard = clipboard_content
-                            content = ''
-                            content += self.headerText(clipboard_content, ansData)
-                            definitions = ansData[3][1]
-                            definitionsCount = definitions[1] if definitions is not None else 0
-                            content = self.definitionsToHtml(definitions, content, definitionsCount)
-                            self._previousAnswer = self._lastAnswer
-                            self._lastAnswer = content
-                            self._previousAnswerOnlyText = self._lastAnswerOnlyText
-                            self._lastAnswerOnlyText = self.removeHtmlTags(self._lastAnswer)
-                            self.printToQT(content.replace('\n', '<br>'))
+                            content = [self.headerText(clipboard_content, ansData)]
+                            definitionsRaw = ansData[3][1]
+                            definitionsCount = definitionsRaw[1] if definitionsRaw is not None else 0
+                            if definitionsRaw is not None:
+                                definitions = self.definitionsToHtml(definitionsRaw, definitionsCount)
+                                if definitions is not None:
+                                    content.append(definitions)
+                            self.printToQT(self.listToHtml(content))
+                            self.addToHistory(clipboard_content, content, True, False)
                             condition = False
 
                         else:
                             ans = self.textTranslator.translate(clipboard_content, dest=self._dest, src=self._src)
                             if self._src == 'auto':
                                 self.textToSpeechObject.ttsLang = ans.src
-                            self._previousClipboard = self._lastClipboard
-                            self._lastClipboard = clipboard_content
+                            # Numbering correct
                             ans.text = re.sub(r'((^|\n)\d+)\n', r'\g<1>. ', ans.text)
                             ans.text = ans.text.replace('\n', "<br>")
                             if self._dest in ['fa', 'ar']:
-                                s = '<div dir="rtl">' + ans.text + '</div>'
+                                content = '<div dir="rtl">' + ans.text + '</div>'
                             else:
-                                s = '<div>' + ans.text + '</div>'
-                            self._previousAnswer = self._lastAnswer
-                            self._lastAnswer = s
-                            self._previousAnswerOnlyText = self._lastAnswerOnlyText
-                            self._lastAnswerOnlyText = self.removeHtmlTags(self._lastAnswer)
-                            self.printToQT(s.replace('\n', '<br>'))
+                                content = '<div>' + ans.text + '</div>'
+                            self.printToQT(content)
+                            self.addToHistory(clipboard_content, content, False, False)
                             condition = False
+                        self.flagHandleExplainState = False
+
                     except Exception as e:
                         time.sleep(1)
-                        tryCount = tryCount + 1
-                        self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, ' '
-                        self._previousClipboard, self._lastClipboard = self._lastClipboard, ' '
-                        self._previousAnswerOnlyText = self._lastAnswer
-                        self._lastAnswer = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(
-                            tryCount) + ' time.<br><br>' + str(e) + '</div>'
+                        tryCount += 1
+                        text = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(tryCount) + ' time.<br><br>' + str(e) + '</div> '
                         if str(e) == "'NoneType' object has no attribute 'group'":
-                            self._lastAnswer = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(
-                                tryCount) + 'time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp' \
+                            text = '<div><font style="font-size:23pt">⚠️</font><br>I try for ' + str(
+                                tryCount) + ' time.<br><br>App&nbsp;has&nbsp;a&nbsp;problem&nbsp;in&nbsp;getting&nbsp' \
                                             ';a&nbsp;token&nbsp;from&nbsp;google.translate.com<br>try again or ' \
                                             'restart the App.</div> '
-                        self.printToQT(self._lastAnswer)
+
+                        self.printToQT(text)
+                        self.flagHandleExplainState = True
                         QApplication.processEvents()
                         if tryCount > 2:
                             condition = False
@@ -577,7 +613,6 @@ class MyApp(QLabel):
 
         self._allow_translation = True
         self._current_state = True
-        self._appsFirstStart = False
 
     def startWatcher(self):
         self.watcher.start()
@@ -587,10 +622,26 @@ class MyApp(QLabel):
         self.watcher.stop()
 
     def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+            if self.numberPressedStorage != '':
+                self.delDefFromTrans(int(self.numberPressedStorage))
+            self.numberPressedStorage = ''
+
+        keylist = range(48, 58)
+        if not self.spell_checked and event.key() in keylist:
+            self.numberPressedStorage += str(keylist.index(event.key()))
+        else:
+            self.numberPressedStorage = ''
+
+        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+            if self.numberPressedStorage != '':
+                self.delDefFromTrans(int(self.numberPressedStorage))
+            self.numberPressedStorage = ''
+
         if self.spell_checked:
             if event.key() == 48 or event.key() == 1776:
                 self.check_word_correction = False
-                self.mainEditTranslatePrint('TarjumehDobAreHLach')
+                self.mainEditTranslatePrint(pyperclip.paste())
             if event.key() == 49 or event.key() == 1777:
                 pyperclip.copy(self.spellCandidate[0])
             if event.key() == 50 or event.key() == 1778:
@@ -605,21 +656,8 @@ class MyApp(QLabel):
                 pyperclip.copy(self.spellCandidate[5])
 
         if (event.key() == Qt.Key_H or event.key() == 1575) and self._lastAnswer != texts.instructionText:
-            self._previousAnswer, self._lastAnswer = self._lastAnswer, texts.instructionText
-            self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, ''
-            self._previousClipboard, self._lastClipboard = self._lastClipboard, ''
-            self.printToQT(self._lastAnswer)
-
-        if (event.key() == Qt.Key_S or event.key() == 1587) & (self._lastClipboard != ''):
-            self.saveAnki()
-
-        # copy text or html file to clipboard
-        if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_T or event.key() == 1601):
-            pyperclip.copy(self._lastAnswerOnlyText)
-            self.formToggle()
-        if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_H or event.key() == 1575):
-            pyperclip.copy(self._lastAnswer.replace('left', 'center'))
-            self.formToggle()
+            self.printToQT(texts.instructionText)
+            self.flagHandleExplainState = True
 
         if event.key() == Qt.Key_R or event.key() == 1602:
             self.textToSpeechObject.previousText = ''
@@ -628,63 +666,36 @@ class MyApp(QLabel):
             else:
                 self.textToSpeechObject.Read(pyperclip.paste())
 
-        # on or off text to speech
-        if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_N or event.key() == 1583):
-            self.tts_onOff_flag = True
-            self.formToggle()
-        if event.modifiers() == Qt.ControlModifier and (event.key() == Qt.Key_F or event.key() == 1576):
-            self.tts_onOff_flag = False
-            self.formToggle()
-
         # minimize and maximize
-        if (event.key() == Qt.Key_M or event.key() == 1662) or (event.key() == Qt.Key_Space):
-            self.appMinMaxChange(True)
-        if event.key() == Qt.Key_X or event.key() == 1591:
-            self.appMinMaxChange(False)
+        if event.key() == Qt.Key_Space:
+            self.appMinMaxChange(not self._appIsMinimize)
 
-        if (event.key() == Qt.Key_Left) & self._current_state:
-            self._current_state = False
-            self.swapBackNextAnswer()
+        if self.currentState != len(self.appHistory) and event.key() == Qt.Key_Right:
+            self.goForward()
 
-        if (event.key() == Qt.Key_Right) & (not self._current_state):
-            self._current_state = True
-            self.swapBackNextAnswer()
-
-    def swapBackNextAnswer(self):
-        self._previousAnswer, self._lastAnswer = self._lastAnswer, self._previousAnswer
-        self._previousAnswerOnlyText, self._lastAnswerOnlyText = self._lastAnswerOnlyText, self._previousAnswerOnlyText
-        self._previousClipboard, self._lastClipboard = self._lastClipboard, self._previousClipboard
-        if self._lastAnswer == ' ':
-            self._appIsMinimize = True
-        else:
-            self._appIsMinimize = False
-        self.printToQT(self._lastAnswer)
-
-    def isNotWordSaved(self):
-        wordIsAdded = True
-        for word in self.savedWordsList:
-            if word == self._lastClipboard:
-                wordIsAdded = False
-        return wordIsAdded
+        if event.key() == Qt.Key_Left:
+            self.goBackward()
 
     def saveAnki(self):
-        if self.isNotWordSaved():
+        if not self.appHistory[self.currentState - 1][3]:
             unique_filename = str(uuid.uuid4())
             fullPath = os.path.join(self.exportFolderPath, unique_filename + ".mp3")
             if win10 and self.textToSpeechObject.ttsEngine == 'win':
-                self.textToSpeechObject.engine.save_to_file(self._lastClipboard, fullPath)
+                self.textToSpeechObject.engine.save_to_file(self.appHistory[self.currentState - 1][0], fullPath)
                 self.textToSpeechObject.engine.runAndWait()
             else:
-                var = gTTS(text=self._lastClipboard, lang=self.textToSpeechObject.ttsLang)
+                var = gTTS(text=self.appHistory[self.currentState - 1][0], lang=self.textToSpeechObject.ttsLang)
                 var.save(fullPath)
 
             self.myDeck.add_note(genanki.Note(model=self.ankiCardModel,
-                                              fields=[self._lastClipboard, self._lastAnswer.replace('left', 'center'),
+                                              fields=[self.appHistory[self.currentState - 1][0],
+                                                      self.listToHtml(self.appHistory[self.currentState - 1][1]),
                                                       '[sound:' + unique_filename + '.mp3' + ']']))
+
             self.myAnkiPackage.media_files.append(fullPath)
             self.myAnkiPackage.write_to_file(
                 os.path.join(self.exportFolderPath, 'output ' + str(self._initTime).replace(':', '.') + '.apkg'))
-            self.savedWordsList.append(self._lastClipboard)
+            self.appHistory[self.currentState - 1][3] = True
             self.formToggle()
 
     def appMinMaxChange(self, e):
