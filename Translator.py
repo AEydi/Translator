@@ -307,11 +307,11 @@ class MyApp(QLabel):
 
         if selectedAction == copyAllWithHtmlTagsButton:
             self._allow_translation = False
-            pyperclip.copy(self.listToHtml(self.appHistory[self.currentState - 1][1]))
+            pyperclip.copy(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]))
 
         if selectedAction == copyAllAsTextButton:
             self._allow_translation = False
-            pyperclip.copy(removeHtmlTags(self.listToHtml(self.appHistory[self.currentState - 1][1])))
+            pyperclip.copy(removeHtmlTags(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2])))
 
         if selectedAction == translateButton:
             if self.hasSelectedText():
@@ -321,14 +321,14 @@ class MyApp(QLabel):
 
     def goForward(self):
         self.currentState += 1
-        self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1]))
+        self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]))
         self.flagHandleExplainState = False
 
     def goBackward(self):
         if self.currentState != 0:
             if not self.flagHandleExplainState:
                 self.currentState -= 1
-            self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1]))
+            self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]))
             self.flagHandleExplainState = False
         if self.currentState == 0:
             self.setWelcomeText()
@@ -474,19 +474,22 @@ class MyApp(QLabel):
         headerText += '</div>'
         return headerText
 
-    def listToHtml(self, content, numReqClear=0):
-        definitionsCount = 0
+    def listToHtml(self, content, kindIsWord, numReqClear=0):
         html = ''
-        head = content[0]
-        html += head
-        if len(content) > 1:
-            for eachType in content[1]:
-                if len(eachType) > 1:
-                    html += eachType[0]
-                for eachDef in eachType[len(eachType) - 1]:
-                    definitionsCount += 1
-                    if numReqClear != definitionsCount:
-                        html += eachDef
+        if kindIsWord:
+            definitionsCount = 0
+            head = content[0]
+            html += head
+            if len(content) > 1:
+                for eachType in content[1]:
+                    if len(eachType) > 1:
+                        html += eachType[0]
+                    for eachDef in eachType[len(eachType) - 1]:
+                        definitionsCount += 1
+                        if numReqClear != definitionsCount:
+                            html += eachDef
+        else:
+            html = content
         return html
 
     def delDefFromTrans(self, numReqClear):
@@ -503,7 +506,7 @@ class MyApp(QLabel):
                 del content[1][eachType]
                 break
         if flag:
-            self.printToQT(self.listToHtml(content))
+            self.printToQT(self.listToHtml(content, True))
             temp = self.appHistory[self.currentState - 1]
             self.addToHistory(temp[0], content, temp[2], temp[3])
 
@@ -572,7 +575,7 @@ class MyApp(QLabel):
                                 definitions = self.definitionsToHtml(definitionsRaw, definitionsCount)
                                 if definitions is not None:
                                     content.append(definitions)
-                            self.printToQT(self.listToHtml(content))
+                            self.printToQT(self.listToHtml(content, True))
                             self.addToHistory(clipboard_content, content, True, False)
                             condition = False
 
@@ -625,7 +628,8 @@ class MyApp(QLabel):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
-            if self.numberPressedStorage != '':
+            kindIsWord = self.appHistory[self.currentState - 1][2]
+            if self.numberPressedStorage != '' and kindIsWord:
                 self.delDefFromTrans(int(self.numberPressedStorage))
             self.numberPressedStorage = ''
 
@@ -633,11 +637,6 @@ class MyApp(QLabel):
         if not self.spell_checked and event.key() in keylist:
             self.numberPressedStorage += str(keylist.index(event.key()))
         else:
-            self.numberPressedStorage = ''
-
-        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
-            if self.numberPressedStorage != '':
-                self.delDefFromTrans(int(self.numberPressedStorage))
             self.numberPressedStorage = ''
 
         if self.spell_checked:
@@ -679,7 +678,7 @@ class MyApp(QLabel):
             self.goBackward()
 
     def saveAnki(self):
-        if not self.appHistory[self.currentState - 1][3]:
+        if not self.appHistory[self.currentState - 1][3] and self.appHistory[self.currentState - 1][2]:
             unique_filename = str(uuid.uuid4())
             fullPath = os.path.join(self.exportFolderPath, unique_filename + ".mp3")
             if win10 and self.textToSpeechObject.ttsEngine == 'win':
@@ -691,7 +690,8 @@ class MyApp(QLabel):
 
             self.myDeck.add_note(genanki.Note(model=self.ankiCardModel,
                                               fields=[self.appHistory[self.currentState - 1][0],
-                                                      self.listToHtml(self.appHistory[self.currentState - 1][1]),
+                                                      self.listToHtml(self.appHistory[self.currentState - 1][1],
+                                                                      self.appHistory[self.currentState - 1][2]),
                                                       '[sound:' + unique_filename + '.mp3' + ']']))
 
             self.myAnkiPackage.media_files.append(fullPath)
