@@ -481,8 +481,9 @@ class MyApp(QLabel):
         html += head
         if len(content) > 1:
             for eachType in content[1]:
-                html += eachType[0]
-                for eachDef in eachType[1]:
+                if len(eachType) > 1:
+                    html += eachType[0]
+                for eachDef in eachType[len(eachType) - 1]:
                     definitionsCount += 1
                     if numReqClear != definitionsCount:
                         html += eachDef
@@ -493,13 +494,14 @@ class MyApp(QLabel):
         content = copy.deepcopy(self.appHistory[self.currentState - 1][1])
         flag = False
         for eachType in range(len(content[1])):
-            for eachDef in range(len(content[1][eachType][1])):
+            for eachDef in range(len(content[1][eachType][len(content[1][eachType]) - 1])):
                 definitionsCount += 1
                 if numReqClear == definitionsCount:
-                    del content[1][eachType][1][eachDef]
+                    del content[1][eachType][len(content[1][eachType]) - 1][eachDef]
                     flag = True
-            if not content[1][eachType][1]:
+            if not content[1][eachType][len(content[1][eachType]) - 1]:
                 del content[1][eachType]
+                break
         if flag:
             self.printToQT(self.listToHtml(content))
             temp = self.appHistory[self.currentState - 1]
