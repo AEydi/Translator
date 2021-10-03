@@ -42,9 +42,6 @@ class MyApp(QLabel):
         self.currentState = 0
         self.flagHandleExplainState = False
         self.numberPressedStorage = ''
-        self._lastAnswer = texts.welcomeText
-        self._lastAnswerOnlyText = ""
-        self._lastClipboard = ""
         self.exportFolderPath = utility.createExportFolder()
         self.ankiCardModel = utility.createAnkiCardsModel()
         self.myDeck = genanki.Deck(2054560191, utility.myDeckName())
@@ -60,8 +57,8 @@ class MyApp(QLabel):
         self.textToSpeechObject.start()
         self.tts_onOff_flag = False  # on off text to speech
         self._appIsMinimize = False  # min max flag
-        self._current_state = True  # true mean in state new
         self._allow_translation = True
+        self.translatePermission  = 0
         self._translator_onOff = True
         self._src = 'en'
         self._dest = 'fa'
@@ -567,7 +564,6 @@ class MyApp(QLabel):
                             if self._src == 'auto':
                                 SOURCE = 2
                                 self.textToSpeechObject.ttsLang = ansData[SOURCE]
-                            self._lastClipboard = clipboard_content
                             content = [self.headerText(clipboard_content, ansData)]
                             definitionsRaw = ansData[3][1]
                             definitionsCount = definitionsRaw[1] if definitionsRaw is not None else 0
@@ -611,13 +607,12 @@ class MyApp(QLabel):
                         if tryCount > 2:
                             condition = False
                     if self.tts_onOff_flag & (not condition):
-                        self.textToSpeechObject.Read(self._lastClipboard)
+                        self.textToSpeechObject.Read(self.appHistory[self.currentState - 1][0])
 
         if self.tts_onOff_flag & (not self._translator_onOff):
             self.textToSpeechObject.Read(pyperclip.paste())
 
         self._allow_translation = True
-        self._current_state = True
 
     def startWatcher(self):
         self.watcher.start()
@@ -656,14 +651,14 @@ class MyApp(QLabel):
             if event.key() == 54 or event.key() == 1782:
                 pyperclip.copy(self.spellCandidate[5])
 
-        if (event.key() == Qt.Key_H or event.key() == 1575) and self._lastAnswer != texts.instructionText:
+        if event.key() == Qt.Key_H or event.key() == 1575:
             self.printToQT(texts.instructionText)
             self.flagHandleExplainState = True
 
         if event.key() == Qt.Key_R or event.key() == 1602:
             self.textToSpeechObject.previousText = ''
             if self._translator_onOff:
-                self.textToSpeechObject.Read(self._lastClipboard)
+                self.textToSpeechObject.Read(self.appHistory[self.currentState - 1][0])
             else:
                 self.textToSpeechObject.Read(pyperclip.paste())
 
@@ -706,10 +701,7 @@ class MyApp(QLabel):
             self.setText(' ')
             self.adjustSize()
         else:
-            self.setText(self._lastAnswer)
-            if self._lastAnswer == ' ':
-                self.setText(texts.welcomeText)
-            self.adjustSize()
+            self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]))
 
     def formToggle(self):
         self.setStyleSheet("QLabel { background-color : #353535; color : white; }")
