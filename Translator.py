@@ -421,8 +421,7 @@ class MyApp(QLabel):
             html += '<span style="font-size:8pt;line-height:11pt;background-color:#424242;padding-left: ' \
                     '1pt;padding-right:1pt;"><font color="#b0bec5"> ' + '</font></span>  <span style="font-size:8pt;' \
                     'line-height:11pt;background-color:#424242;padding-left:1pt;padding-right:1pt;"> <font ' \
-                    'color="#b0bec5">'.join([inner for outer in eachDef[EXTRA_EXPLAIN] for inner in outer]).upper(
-                    ) + '</font></span> '
+                    'color="#b0bec5">'.join([i.upper() for j in eachDef[EXTRA_EXPLAIN] for i in j]) + '</font></span> '
         html += eachDef[DEF] + '</div>'
         if len(eachDef) > EXAMPLE and eachDef[EXAMPLE] is not None:
             html += '<div><font color="#ccaca0">' + eachDef[
