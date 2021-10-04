@@ -102,3 +102,6 @@ def wordContainWordHaveDot(k, word):
     lineStart = "(^[^\w]|^|\n)"
     return re.search(r"" + lineStart + wordsHaveDot.words[k].replace(".", "\.") + "", word)
 
+
+def inTextEmpty(word):
+    return bool(word.strip())
