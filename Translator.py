@@ -40,7 +40,7 @@ class MyApp(QLabel):
         self.setWelcomeText()
         self.appHistory = []
         self.currentState = 0
-        self.flagHandleExplainState = False
+        self.handleExplainStateFlag = False
         self.numberPressedStorage = ''
         self.exportFolderPath = utility.createExportFolder()
         self.ankiCardModel = utility.createAnkiCardsModel()
@@ -55,19 +55,18 @@ class MyApp(QLabel):
         self.watcher.signal.connect(self.mainEditTranslatePrint)
         self.textToSpeechObject = TextToSpeech()
         self.textToSpeechObject.start()
-        self.tts_onOff_flag = False  # on off text to speech
-        self._appIsMinimize = False  # min max flag
-        self._allow_translation = True
-        self.translatePermission  = 0
-        self._translator_onOff = True
+        self.ttsOnOffFlag = False  # on off text to speech
+        self.appMinimizeFlag = False  # min max flag
+        self.translationPermissionFlag = True
+        self.translatorOnOffFlag = True
         self._src = 'en'
         self._dest = 'fa'
         # spell checker config
         self.spell = SpellChecker(distance=2)
         self.spellCandidate = []
-        self.check_word_correction = True
-        self.spell_checked = False
-        self._autoEdit = True
+        self.checkWordCorrection = True
+        self.spellCheckedFlag = False
+        self.autoEditFlag = True
         self.requiredDotsRegex = re.compile(
             r"((^|[^\w])([a-zA-Z]\.)+)(\w+\.|[^\w]|\w|$)|([^\w]|\d)\.\d")  # required dots i.e. i.5 2.5 d.o.t .6 $2.
         self.sourceLanguageList = texts.sourceLanguageList
@@ -84,7 +83,7 @@ class MyApp(QLabel):
         else:
             self.setText(texts.welcomeText)
         self.adjustSize()
-        self.flagHandleExplainState = False
+        self.handleExplainStateFlag = False
 
     def setUIProperty(self):
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
@@ -118,7 +117,7 @@ class MyApp(QLabel):
             nextInAnswersButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/Next.png'), "Next")
 
         minimizeMaximizeButton = contextMenu.addAction('Minimize')
-        if self._appIsMinimize:
+        if self.appMinimizeFlag:
             minimizeMaximizeButton.setText('Maximize')
             minimizeMaximizeButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/max.png'))
         else:
@@ -130,21 +129,21 @@ class MyApp(QLabel):
         saveAnswerToAnkiCardButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/save.png'),
                                                            "Save as Anki Cards")
 
-        if self.textToSpeechObject.ttsLang == 'en-us' and win10:
+        if self.textToSpeechObject.ttsLang == 'en' and win10:
             ttsMenu = QMenu(contextMenu)
             ttsMenu.setTitle('Text To Speech Options')
             ttsOnOffButton = ttsMenu.addAction("Text To Speech ON")
             contextMenu.addMenu(ttsMenu)
-            if self.tts_onOff_flag:
+            if self.ttsOnOffFlag:
                 ttsMenu.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/off.png'))
                 ttsOnOffButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/off.png'))
                 ttsOnOffButton.setText('Text To Speech OFF')
-            if not self.tts_onOff_flag:
+            if not self.ttsOnOffFlag:
                 ttsMenu.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/on.png'))
                 ttsOnOffButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/on.png'))
                 ttsOnOffButton.setText('Text To Speech ON')
 
-            if win10 and self.textToSpeechObject.ttsLang == 'en-us':
+            if win10 and self.textToSpeechObject.ttsLang == 'en':
                 if self.textToSpeechObject.ttsEngine == 'win':
                     selectTTSEngineButton = ttsMenu.addAction('Google TTS')
                     selectTTSEngineButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/g.png'))
@@ -155,10 +154,10 @@ class MyApp(QLabel):
                 self.textToSpeechObject.ttsEngine = 'gtts'
         else:
             ttsOnOffButton = contextMenu.addAction("Text To Speech ON")
-            if self.tts_onOff_flag:
+            if self.ttsOnOffFlag:
                 ttsOnOffButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/off.png'))
                 ttsOnOffButton.setText('Text To Speech OFF')
-            if not self.tts_onOff_flag:
+            if not self.ttsOnOffFlag:
                 ttsOnOffButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/on.png'))
                 ttsOnOffButton.setText('Text To Speech ON')
             self.textToSpeechObject.ttsEngine = 'gtts'
@@ -191,7 +190,7 @@ class MyApp(QLabel):
                 destinationLanguageActions[i].setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/tick.png'))
         optionMenu.addMenu(languageDestinationMenu)
 
-        if self._autoEdit:
+        if self.autoEditFlag:
             autoEditButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/ef.png'),
                                                   'Auto Edit Paragraph OFF')
         else:
@@ -227,10 +226,10 @@ class MyApp(QLabel):
 
         quitAppButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/power.png'), '&Exit')
 
-        if self._translator_onOff:
+        if self.translatorOnOffFlag:
             onOffTranslateActionButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/s.png'))
             onOffTranslateActionButton.setText('Translate OFF')
-        if not self._translator_onOff:
+        if not self.translatorOnOffFlag:
             onOffTranslateActionButton.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/st.png'))
             onOffTranslateActionButton.setText('Translate ON')
 
@@ -248,9 +247,9 @@ class MyApp(QLabel):
                     pass
 
         if selectedAction == autoEditButton:
-            self._autoEdit = not self._autoEdit
+            self.autoEditFlag = not self.autoEditFlag
 
-        if win10 and self.textToSpeechObject.ttsLang == 'en-us':
+        if win10 and self.textToSpeechObject.ttsLang == 'en':
             if selectedAction == selectTTSEngineButton:
                 if self.textToSpeechObject.ttsEngine == 'win':
                     self.textToSpeechObject.ttsEngine = 'gtts'
@@ -262,14 +261,10 @@ class MyApp(QLabel):
                 self._src, self._dest = self._dest, self._src
                 self.textToSpeechObject.lastPlayedText = ''
                 self.textToSpeechObject.ttsLang = self._src
-                if self._src == 'en':
-                    self.textToSpeechObject.ttsLang = 'en-us'
 
         for i in sourceLanguageActions:
             if selectedAction == sourceLanguageActions[i]:
-                self._src = 'en' if (
-                        self.sourceLanguageList[i] == 'en-us' or self.sourceLanguageList[i] == 'en-uk') else \
-                    self.sourceLanguageList[i]
+                self._src = self.sourceLanguageList[i]
                 self.textToSpeechObject.ttsLang = self.sourceLanguageList[i]
                 self.textToSpeechObject.lastPlayedText = ''
 
@@ -278,10 +273,10 @@ class MyApp(QLabel):
                 self._dest = self.destinationLanguageList[i]
 
         if selectedAction == onOffTranslateActionButton:
-            self._translator_onOff = not self._translator_onOff
+            self.translatorOnOffFlag = not self.translatorOnOffFlag
 
         if selectedAction == ttsOnOffButton:
-            self.tts_onOff_flag = not self.tts_onOff_flag
+            self.ttsOnOffFlag = not self.ttsOnOffFlag
 
         if selectedAction == saveAnswerToAnkiCardButton:
             self.saveAnki()
@@ -293,41 +288,43 @@ class MyApp(QLabel):
             self.goBackward()
 
         if selectedAction == minimizeMaximizeButton:
-            self.appMinMaxChange(not self._appIsMinimize)
+            self.appMinMaxChange(not self.appMinimizeFlag)
 
         if selectedAction == quitAppButton:
             self.close()
 
         if (selectedAction == copySelectedTextWithoutTranslateButton) and self.hasSelectedText:
-            self._allow_translation = False
+            self.translationPermissionFlag = False
             pyperclip.copy(self.selectedText())
 
         if selectedAction == copyAllWithHtmlTagsButton:
-            self._allow_translation = False
+            self.translationPermissionFlag = False
             pyperclip.copy(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]))
 
         if selectedAction == copyAllAsTextButton:
-            self._allow_translation = False
+            self.translationPermissionFlag = False
             pyperclip.copy(removeHtmlTags(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2])))
 
         if selectedAction == translateButton:
             if self.hasSelectedText():
-                pyperclip.copy(self.selectedText())
+                if self.appHistory[self.currentState - 1][0].lower() != self.selectedText().lower():
+                    pyperclip.copy(self.selectedText())
             elif self.currentState == 0:
                 self.mainEditTranslatePrint(pyperclip.paste())
 
     def goForward(self):
         self.currentState += 1
         self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]))
-        self.flagHandleExplainState = False
+        self.handleExplainStateFlag = False
 
     def goBackward(self):
-        if self.currentState != 0:
-            if not self.flagHandleExplainState:
+        if self.currentState > 1:
+            if not self.handleExplainStateFlag:
                 self.currentState -= 1
             self.printToQT(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]))
-            self.flagHandleExplainState = False
-        if self.currentState == 0:
+            self.handleExplainStateFlag = False
+        else:
+            self.currentState = 0
             self.setWelcomeText()
 
     def wordContainNotRequiredDots(self, word):
@@ -348,10 +345,9 @@ class MyApp(QLabel):
         return q + p
 
     def autoEditDots(self, clipboard_content):
-        clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r",
-                                                                                              " ").replace(
-            "...", "*$_#")
+        clipboard_content = clipboard_content.replace("\n\r", " ").replace("\n", " ").replace("\r", " ").replace("...", "*$_#")
 
+        clipboard_content = re.sub(r'\u000D\u000A|[\u000A\u000B\u000C\u000D\u0085\u2028\u2029]', '\n',clipboard_content)
         singleWords = re.split(r"\s", clipboard_content)
         for i in range(len(singleWords)):
             if utility.wordContainDot(singleWords[i]) and self.wordContainNotRequiredDots(singleWords[i]) and (
@@ -370,8 +366,7 @@ class MyApp(QLabel):
                         singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
                         c = False
                         break
-                    R = re.search(r"(\w+\.(com|io|org|gov|se|ch|de|nl|eu|net|ir|edu|info|ac.(\w{2,3})))",
-                                  singleWords[i])
+                    R = re.search(r"(\w+\.(com|io|org|gov|se|ch|de|nl|eu|net|ir|edu|info|ac.(\w{2,3})))", singleWords[i])
                     if R:
                         singleWords[i] = self.addNewLineAfterCutPartContainDottedWord(R, singleWords[i])
                         c = False
@@ -385,8 +380,6 @@ class MyApp(QLabel):
                     else:
                         singleWords[i] = singleWords[i].replace(".", ".\n")
 
-        clipboard_content = re.sub(r'\u000D\u000A|[\u000A\u000B\u000C\u000D\u0085\u2028\u2029]', '\n',
-                                   clipboard_content)
         clipboard_content = ' '.join(map(str, singleWords))
         clipboard_content = re.sub(r"(\n|^)\s+", "\n", clipboard_content)
         clipboard_content = clipboard_content.replace("*$_#", "...")  # dont inter enter for ...
@@ -395,7 +388,7 @@ class MyApp(QLabel):
     def printToQT(self, text):
         self.setText(text)
         self.adjustSize()
-        self._appIsMinimize = False
+        self.appMinimizeFlag = False
 
     def createAns(self, eachDef, dontAddMarginAfterType):
         DEF = 0
@@ -410,7 +403,7 @@ class MyApp(QLabel):
             html += '<div style="margin-top:5px";>'
         if len(eachDef) > EXTRA_EXPLAIN and eachDef[EXTRA_EXPLAIN] is not None:
             html += '<span style = "font-size: 7.5pt;line-height: 11pt ;background-color:#424242;padding-left: ' \
-                    '1pt;padding-right: 1pt;"> <font color="#b0bec5"> ' + '</font></span>  <span style = "font-size: ' \
+                    '1pt;padding-right: 1pt;"><font color="#b0bec5"> ' + '</font></span>  <span style = "font-size: ' \
                     '7.5pt;line-height: 11pt;background-color:#424242;padding-left: 1pt;padding-right: 1pt;"> <font ' \
                     'color="#b0bec5">'.join([inner for outer in eachDef[EXTRA_EXPLAIN] for inner in outer]).upper(
                     ) + '</font></span> '
@@ -436,25 +429,37 @@ class MyApp(QLabel):
             html += '<div style = "font-size: 9.5pt;">' + synonym + '</div>'
         return html, dontAddMarginAfterType
 
-    def definitionsToHtml(self, definitionsRaw, definitionsCount):
-        if definitionsCount != 0:
-            definitions = []
-            for oneTypeDefsRaw in definitionsRaw[0]:
-                oneType = []
-                oneTypeDefs = []
-                HAS_TYPE = 0
-                if oneTypeDefsRaw[HAS_TYPE]:
-                    oneType = ['<div style="margin-top:8px";><font color="#FFC107">' + oneTypeDefsRaw[
-                        0].capitalize() + '</font></div>']
-                DEFS = 1
-                thisTypeDefs = oneTypeDefsRaw[DEFS]
-                dontAddMarginAfterType = True
-                for eachDef in thisTypeDefs:
-                    defHtml, dontAddMarginAfterType = self.createAns(eachDef, dontAddMarginAfterType)
-                    oneTypeDefs.append(defHtml)
-                oneType.append(oneTypeDefs)
-                definitions.append(oneType)
-            return definitions
+    def definitionsToHtml(self, definitionsRaw):
+        definitions = []
+        for oneTypeDefsRaw in definitionsRaw[0]:
+            oneType = []
+            oneTypeDefs = []
+            HAS_TYPE = 0
+            if oneTypeDefsRaw[HAS_TYPE]:
+                oneType = ['<div style="margin-top:8px";><font color="#FFC107">' + oneTypeDefsRaw[
+                    0].capitalize() + '</font></div>']
+            DEFS = 1
+            thisTypeDefs = oneTypeDefsRaw[DEFS]
+            dontAddMarginAfterType = True
+            for eachDef in thisTypeDefs:
+                defHtml, dontAddMarginAfterType = self.createAns(eachDef, dontAddMarginAfterType)
+                oneTypeDefs.append(defHtml)
+            oneType.append(oneTypeDefs)
+            definitions.append(oneType)
+        return definitions
+
+    def wordsToHtml(self, wordsRaw):
+        html = ''
+        color = ["#42A5F5", "#90CAF9", "#E3F2FD"]
+        words = []
+        for defType in wordsRaw[0]:
+            if defType[0]:
+                html += '<div style="margin-top:8px";><font color="#FFC107">' + defType[0].capitalize() + '</font>: '
+                for word in defType[1]:
+                    words.append('<font color=' + color[word[3] - 1] + '>‎' + word[0] + '‎</font>')
+                html += '<span>' + ', </span><span>'.join(words) + '</span></div>'
+                words = []
+        return html
 
     def headerText(self, clipboard_content, ansData):
         headerText = '<div><font color="#F50057">' + clipboard_content.capitalize() + '</font>'
@@ -471,9 +476,9 @@ class MyApp(QLabel):
         headerText += '</div>'
         return headerText
 
-    def listToHtml(self, content, kindIsWord, numReqClear=0):
+    def listToHtml(self, content, isKindWord, numReqClear=0):
         html = ''
-        if kindIsWord:
+        if isKindWord:
             definitionsCount = 0
             head = content[0]
             html += head
@@ -486,30 +491,34 @@ class MyApp(QLabel):
                         if numReqClear != definitionsCount:
                             html += eachDef
         else:
-            html = content
+            html = content[0]
         return html
 
     def delDefFromTrans(self, numReqClear):
         definitionsCount = 0
         content = copy.deepcopy(self.appHistory[self.currentState - 1][1])
         flag = False
+        isKindWord = True
         for eachType in range(len(content[1])):
             for eachDef in range(len(content[1][eachType][len(content[1][eachType]) - 1])):
                 definitionsCount += 1
                 if numReqClear == definitionsCount:
                     del content[1][eachType][len(content[1][eachType]) - 1][eachDef]
                     flag = True
+                    break
             if not content[1][eachType][len(content[1][eachType]) - 1]:
                 del content[1][eachType]
+                if not content[1]:
+                    isKindWord = False
                 break
         if flag:
             self.printToQT(self.listToHtml(content, True))
             temp = self.appHistory[self.currentState - 1]
-            self.addToHistory(temp[0], content, temp[2], temp[3])
+            self.addToHistory(temp[0], content, isKindWord, temp[3])
 
-    def addToHistory(self, clipboard_content, content, kindIsWord, saved=False):
+    def addToHistory(self, clipboard_content, content, isKindWord, saved=False):
         del self.appHistory[self.currentState:]
-        self.appHistory.append([clipboard_content, content, kindIsWord, saved])
+        self.appHistory.append([clipboard_content, content, isKindWord, saved])
         self.currentState += 1
 
     def createMessageForSpellCheck(self, clipboard_content):
@@ -526,19 +535,19 @@ class MyApp(QLabel):
         return message
 
     def mainEditTranslatePrint(self, clipboard_content):
-        self.spell_checked = False
-        if (self._allow_translation and self._translator_onOff) and (clipboard_content != '') and utility.isTextURL(
+        self.spellCheckedFlag = False
+        if (self.translationPermissionFlag and self.translatorOnOffFlag) and (clipboard_content != '') and utility.isTextURL(
                 clipboard_content) and (re.search(r'</.+?>', clipboard_content) is None) and utility.isTextPassword(
                 clipboard_content):
 
             clipboard_content = clipboard_content.strip()
 
-            if self._autoEdit:
+            if self.autoEditFlag:
                 clipboard_content = self.autoEditDots(clipboard_content)
             if self._src in ['en', 'de', 'es', 'fr', 'pt']:
                 self.spell = SpellChecker(language=self._src, distance=2)
             if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (
-                    self._src in ['en', 'de', 'es', 'fr', 'pt']) and self.check_word_correction and (
+                    self._src in ['en', 'de', 'es', 'fr', 'pt']) and self.checkWordCorrection and (
                     len(self.spell.known({clipboard_content.strip(".,:;،٬٫/")})) == 0):
                 candidateWords = list(self.spell.candidates(clipboard_content))
                 candidateDic = {candidateWords[i]: self.spell.word_probability(candidateWords[i]) for i in
@@ -549,10 +558,10 @@ class MyApp(QLabel):
                     self.spellCandidate.append(sortedItem[i][0])
                 message = self.createMessageForSpellCheck(clipboard_content)
                 self.printToQT(message)
-                self.flagHandleExplainState = True
-                self.spell_checked = True
+                self.handleExplainStateFlag = True
+                self.spellCheckedFlag = True
             else:
-                self.check_word_correction = True
+                self.checkWordCorrection = True
                 tryCount = 0
                 condition = True  # try 3 time for translate
                 while condition:
@@ -566,13 +575,19 @@ class MyApp(QLabel):
                                 self.textToSpeechObject.ttsLang = ansData[SOURCE]
                             content = [self.headerText(clipboard_content, ansData)]
                             definitionsRaw = ansData[3][1]
+                            wordsRaw = ansData[3][5]
                             definitionsCount = definitionsRaw[1] if definitionsRaw is not None else 0
-                            if definitionsRaw is not None:
-                                definitions = self.definitionsToHtml(definitionsRaw, definitionsCount)
+                            isKindWord = False
+                            if definitionsRaw is not None and definitionsCount != 0:
+                                definitions = self.definitionsToHtml(definitionsRaw)
                                 if definitions is not None:
                                     content.append(definitions)
-                            self.printToQT(self.listToHtml(content, True))
-                            self.addToHistory(clipboard_content, content, True, False)
+                                    isKindWord = True
+                            elif wordsRaw is not None:
+                                content[0] += self.wordsToHtml(wordsRaw)
+                            a = self.listToHtml(content, True)
+                            self.printToQT(a)
+                            self.addToHistory(clipboard_content, content, isKindWord, False)
                             condition = False
 
                         else:
@@ -587,9 +602,9 @@ class MyApp(QLabel):
                             else:
                                 content = '<div>' + ans.text + '</div>'
                             self.printToQT(content)
-                            self.addToHistory(clipboard_content, content, False, False)
+                            self.addToHistory(clipboard_content, [content], False, False)
                             condition = False
-                        self.flagHandleExplainState = False
+                        self.handleExplainStateFlag = False
 
                     except Exception as e:
                         time.sleep(1)
@@ -602,17 +617,17 @@ class MyApp(QLabel):
                                             'restart the App.</div> '
 
                         self.printToQT(text)
-                        self.flagHandleExplainState = True
+                        self.handleExplainStateFlag = True
                         QApplication.processEvents()
                         if tryCount > 2:
                             condition = False
-                    if self.tts_onOff_flag & (not condition):
+                    if self.ttsOnOffFlag & (not condition):
                         self.textToSpeechObject.Read(self.appHistory[self.currentState - 1][0])
 
-        if self.tts_onOff_flag & (not self._translator_onOff):
+        if self.ttsOnOffFlag & (not self.translatorOnOffFlag):
             self.textToSpeechObject.Read(pyperclip.paste())
 
-        self._allow_translation = True
+        self.translationPermissionFlag = True
 
     def startWatcher(self):
         self.watcher.start()
@@ -623,20 +638,20 @@ class MyApp(QLabel):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
-            kindIsWord = self.appHistory[self.currentState - 1][2]
-            if self.numberPressedStorage != '' and kindIsWord:
+            isKindWord = self.appHistory[self.currentState - 1][2]
+            if self.numberPressedStorage != '' and isKindWord:
                 self.delDefFromTrans(int(self.numberPressedStorage))
             self.numberPressedStorage = ''
 
         keylist = range(48, 58)
-        if not self.spell_checked and event.key() in keylist:
+        if not self.spellCheckedFlag and event.key() in keylist:
             self.numberPressedStorage += str(keylist.index(event.key()))
         else:
             self.numberPressedStorage = ''
 
-        if self.spell_checked:
+        if self.spellCheckedFlag:
             if event.key() == 48 or event.key() == 1776:
-                self.check_word_correction = False
+                self.checkWordCorrection = False
                 self.mainEditTranslatePrint(pyperclip.paste())
             if event.key() == 49 or event.key() == 1777:
                 pyperclip.copy(self.spellCandidate[0])
@@ -653,18 +668,18 @@ class MyApp(QLabel):
 
         if event.key() == Qt.Key_H or event.key() == 1575:
             self.printToQT(texts.instructionText)
-            self.flagHandleExplainState = True
+            self.handleExplainStateFlag = True
 
         if event.key() == Qt.Key_R or event.key() == 1602:
             self.textToSpeechObject.previousText = ''
-            if self._translator_onOff:
+            if self.translatorOnOffFlag:
                 self.textToSpeechObject.Read(self.appHistory[self.currentState - 1][0])
             else:
                 self.textToSpeechObject.Read(pyperclip.paste())
 
         # minimize and maximize
         if event.key() == Qt.Key_Space:
-            self.appMinMaxChange(not self._appIsMinimize)
+            self.appMinMaxChange(not self.appMinimizeFlag)
 
         if self.currentState != len(self.appHistory) and event.key() == Qt.Key_Right:
             self.goForward()
@@ -696,8 +711,8 @@ class MyApp(QLabel):
             self.formToggle()
 
     def appMinMaxChange(self, e):
-        self._appIsMinimize = e
-        if self._appIsMinimize:
+        self.appMinimizeFlag = e
+        if self.appMinimizeFlag:
             self.setText(' ')
             self.adjustSize()
         else:
