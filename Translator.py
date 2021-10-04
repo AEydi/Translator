@@ -307,14 +307,26 @@ class MyApp(QLabel):
 
         if selectedAction == translateButton:
             if self.hasSelectedText():
-                if self.currentState > 0 and self.appHistory[self.currentState - 1][0].lower() != self.selectedText().lower():
-                    self.translationPermissionFlag = False
-                pyperclip.copy(self.selectedText())
+                if self.currentState == 0:
+                    if pyperclip.paste().lower() == self.selectedText().lower():
+                        self.mainEditTranslatePrint(self.selectedText())
+                    else:
+                        pyperclip.copy(self.selectedText())
+                else:
+                    if self.appHistory[self.currentState - 1][0].lower() == self.selectedText().lower():
+                        self.translationPermissionFlag = False
+                        pyperclip.copy(self.selectedText())
+                    else:
+                        if pyperclip.paste().lower() == self.selectedText().lower():
+                            self.mainEditTranslatePrint(self.selectedText())
+                        else:
+                            pyperclip.copy(self.selectedText())
             else:
                 if self.currentState == 0:
                     self.mainEditTranslatePrint(pyperclip.paste())
-                elif self.appHistory[max(0, self.currentState - 1)][0].lower() != pyperclip.paste().lower():
-                    self.mainEditTranslatePrint(pyperclip.paste())
+                else:
+                    if self.appHistory[self.currentState - 1][0].lower() != pyperclip.paste().lower():
+                        self.mainEditTranslatePrint(pyperclip.paste())
 
     def goForward(self):
         self.currentState += 1
