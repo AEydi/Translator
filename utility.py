@@ -103,5 +103,5 @@ def wordContainWordHaveDot(k, word):
     return re.search(r"" + lineStart + wordsHaveDot.words[k].replace(".", "\.") + "", word)
 
 
-def inTextEmpty(word):
+def isTextEmpty(word):
     return bool(word.strip())
