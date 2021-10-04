@@ -307,10 +307,15 @@ class MyApp(QLabel):
 
         if selectedAction == translateButton:
             if self.hasSelectedText():
-                if self.appHistory[self.currentState - 1][0].lower() != self.selectedText().lower():
+                if self.currentState == 0:
                     pyperclip.copy(self.selectedText())
-            elif self.currentState == 0:
-                self.mainEditTranslatePrint(pyperclip.paste())
+                elif self.appHistory[self.currentState - 1][0].lower() != self.selectedText().lower():
+                    pyperclip.copy(self.selectedText())
+            else:
+                if self.currentState == 0:
+                    self.mainEditTranslatePrint(pyperclip.paste())
+                elif self.appHistory[max(0, self.currentState - 1)][0].lower() != pyperclip.paste().lower():
+                    self.mainEditTranslatePrint(pyperclip.paste())
 
     def goForward(self):
         self.currentState += 1
@@ -536,9 +541,9 @@ class MyApp(QLabel):
 
     def mainEditTranslatePrint(self, clipboard_content):
         self.spellCheckedFlag = False
-        if (self.translationPermissionFlag and self.translatorOnOffFlag) and (clipboard_content != '') and utility.isTextURL(
-                clipboard_content) and (re.search(r'</.+?>', clipboard_content) is None) and utility.isTextPassword(
-                clipboard_content):
+        if (self.translationPermissionFlag and self.translatorOnOffFlag) and utility.isTextEmpty(clipboard_content) \
+                and utility.isTextURL(clipboard_content) and (re.search(r'</.+?>', clipboard_content) is None) \
+                and utility.isTextPassword(clipboard_content):
 
             clipboard_content = clipboard_content.strip()
 
@@ -624,7 +629,7 @@ class MyApp(QLabel):
                     if self.ttsOnOffFlag & (not condition):
                         self.textToSpeechObject.Read(self.appHistory[self.currentState - 1][0])
 
-        if self.ttsOnOffFlag & (not self.translatorOnOffFlag):
+        if self.ttsOnOffFlag and not self.translatorOnOffFlag:
             self.textToSpeechObject.Read(pyperclip.paste())
 
         self.translationPermissionFlag = True
