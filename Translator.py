@@ -418,9 +418,9 @@ class MyApp(QLabel):
         else:
             html += '<div style="margin-top:5px";>'
         if len(eachDef) > EXTRA_EXPLAIN and eachDef[EXTRA_EXPLAIN] is not None:
-            html += '<span style = "font-size: 7.5pt;line-height: 11pt ;background-color:#424242;padding-left: ' \
-                    '1pt;padding-right: 1pt;"><font color="#b0bec5"> ' + '</font></span>  <span style = "font-size: ' \
-                    '7.5pt;line-height: 11pt;background-color:#424242;padding-left: 1pt;padding-right: 1pt;"> <font ' \
+            html += '<span style="font-size:8pt;line-height:11pt;background-color:#424242;padding-left: ' \
+                    '1pt;padding-right:1pt;"><font color="#b0bec5"> ' + '</font></span>  <span style="font-size:8pt;' \
+                    'line-height:11pt;background-color:#424242;padding-left:1pt;padding-right:1pt;"> <font ' \
                     'color="#b0bec5">'.join([inner for outer in eachDef[EXTRA_EXPLAIN] for inner in outer]).upper(
                     ) + '</font></span> '
         html += eachDef[DEF] + '</div>'
@@ -437,12 +437,12 @@ class MyApp(QLabel):
                 if len(synType) > 1:
                     typ = ', '.join(
                         [inner for outer in synType[1] for inner in outer])
-                    synonym += '<span style = "font-size: 7.5pt;line-height: 11pt ' \
+                    synonym += '<span style="font-size:8pt;line-height: 11pt ' \
                                ';background-color:#424242;padding-left: 1pt;padding-right: 1pt;">&nbsp;<font ' \
                                'color="#b0bec5">' + typ.upper() + '</font>&nbsp;</span>: ' + syn
                     continue
                 synonym += syn
-            html += '<div style = "font-size: 9.5pt;">' + synonym + '</div>'
+            html += '<div style="font-size:9.5pt;">' + synonym + '</div>'
         return html, dontAddMarginAfterType
 
     def definitionsToHtml(self, definitionsRaw):
@@ -714,11 +714,12 @@ class MyApp(QLabel):
                 var = gTTS(text=self.appHistory[self.currentState - 1][0], lang=self.textToSpeechObject.ttsLang)
                 var.save(fullPath)
 
+            content = self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2])
+            content = content.replace('style="font-size:8pt;', 'style="font-size:small;')
+            content = content.replace('style="font-size:9.5pt;', 'style="font-size:medium;')
             self.myDeck.add_note(genanki.Note(model=self.ankiCardModel,
                                               fields=[self.appHistory[self.currentState - 1][0],
-                                                      self.listToHtml(self.appHistory[self.currentState - 1][1],
-                                                                      self.appHistory[self.currentState - 1][2]),
-                                                      '[sound:' + unique_filename + '.mp3' + ']']))
+                                                      content, '[sound:' + unique_filename + '.mp3' + ']']))
 
             self.myAnkiPackage.media_files.append(fullPath)
             self.myAnkiPackage.write_to_file(
