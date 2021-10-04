@@ -1,6 +1,6 @@
 import os
 import platform
-import playsound
+from playsound import playsound
 import pyttsx3
 import sys
 import threading
@@ -40,7 +40,7 @@ class TextToSpeech(threading.Thread):
         # var for set tts engine "win10" or "google tts"
         self.ttsEngine = 'win'
         # var for set google tts language
-        self.ttsLang = 'en-us'
+        self.ttsLang = 'en'
         # this var for handle os.remove bug in win7 --> create file with new name
         self.filesNumberHandelOsRemoveBug = 1
 
@@ -62,7 +62,7 @@ class TextToSpeech(threading.Thread):
     def run(self):
         while not self._stopping:
             if (self.ReceivedText != self.previousText) and (self.ReceivedText != '') and (self.ttsLang != 'fa'):
-                if win10 and self.ttsEngine == 'win' and self.ttsLang == 'en-us':
+                if win10 and self.ttsEngine == 'win' and self.ttsLang == 'en':
                     time.sleep(0.5)
                     self.engine.say(self.ReceivedText)
                     self.engine.runAndWait()
@@ -76,14 +76,14 @@ class TextToSpeech(threading.Thread):
                                 self.filesNumberHandelOsRemoveBug = self.filesNumberHandelOsRemoveBug + 1
                         # if tts language is not set reset it to default
                         if self.ttsLang == '':
-                            self.ttsLang = 'en-us'
+                            self.ttsLang = 'en'
 
-                        var = gTTS(text=self.ReceivedText, lang=self.ttsLang)
-                        var.save('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3')
+                        tts = gTTS(text=self.ReceivedText, lang=self.ttsLang)
+                        tts.save('file'+str(self.filesNumberHandelOsRemoveBug)+'.mp3')
 
                     # if created file not empty play that
                     if os.stat('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3').st_size > 290:
-                        playsound('file' + str(self.filesNumberHandelOsRemoveBug) + '.mp3')
+                        playsound('file'+str(self.filesNumberHandelOsRemoveBug)+'.mp3')
                     self.lastPlayedText = self.ReceivedText
                 self.previousText = self.ReceivedText
             time.sleep(0.1)

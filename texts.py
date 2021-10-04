@@ -34,10 +34,9 @@ instructionText = '<div><font style="font-size:10pt">Mouse&nbsp;Actions:<br>Tran
                   '&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows' \
                   '&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div> '
 
-sourceLanguageList = {'EN US': 'en-us',
-                      'EN UK': 'en-uk',
+sourceLanguageList = {'Auto detect': 'auto',
+                      'English': 'en',
                       'Persian': 'fa',
-                      'Auto detect': 'auto',
                       'Arabic': 'ar',
                       'Danish': 'da',
                       'German': 'de',
@@ -54,8 +53,8 @@ sourceLanguageList = {'EN US': 'en-us',
                       'Turkish': 'tr',
                       'Chinese': 'zh-CN'}
 
-destinationLanguageList = {'Persian': 'fa',
-                           'English': 'en',
+destinationLanguageList = {'English': 'en',
+                           'Persian': 'fa',
                            'Arabic': 'ar',
                            'Danish': 'da',
                            'German': 'de',
