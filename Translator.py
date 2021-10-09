@@ -42,6 +42,9 @@ class MyApp(QLabel):
         self.currentState = 0
         self.handleExplainStateFlag = False
         self.numberPressedStorage = ''
+        self.addKeyFlag = False
+        self.replaceKeyFlag = False
+        self.changeKeyFlag = ''
         self.exportFolderPath = utility.createExportFolder()
         self.ankiCardModel = utility.createAnkiCardsModel()
         self.myDeck = genanki.Deck(2054560191, utility.myDeckName())
@@ -416,7 +419,7 @@ class MyApp(QLabel):
             html += '<div>'
             dontAddMarginAfterType = False
         else:
-            html += '<div style="margin-top:5px";>'
+            html += '<div style="margin-top:5px;">'
         if len(eachDef) > EXTRA_EXPLAIN and eachDef[EXTRA_EXPLAIN] is not None:
             html += '<span style="font-size:8pt;line-height:11pt;background-color:#424242;padding-left: ' \
                     '1pt;padding-right:1pt;"><font color="#b0bec5"> ' + '</font></span>  <span style="font-size:8pt;' \
@@ -430,15 +433,13 @@ class MyApp(QLabel):
             synonyms = eachDef[5]
             synonym = ''
             for synType in synonyms:
-                syn = '</font>, <font color="#ae8c81">'.join(
-                    [inner for outer in synType[0][:4] for inner in outer])
+                syn = '</font>, <font color="#ae8c81">'.join([i for j in synType[0][:4] for i in j])
                 syn = '<font color="#ae8c81">' + syn + '</font>'
                 if len(synType) > 1:
-                    typ = ', '.join(
-                        [inner for outer in synType[1] for inner in outer])
-                    synonym += '<span style="font-size:8pt;line-height: 11pt ' \
-                               ';background-color:#424242;padding-left: 1pt;padding-right: 1pt;">&nbsp;<font ' \
-                               'color="#b0bec5">' + typ.upper() + '</font>&nbsp;</span>: ' + syn
+                    typ = ', '.join([i for j in synType[1] for i in j])
+                    synonym += ' <span style="font-size:8pt;line-height:11pt;background-color:#424242;padding-left:' \
+                               '1pt;padding-right:1pt;"><font color="#b0bec5">' + typ.upper() + '</font>' \
+                               '</span>&nbsp;: ' + syn
                     continue
                 synonym += syn
             html += '<div style="font-size:9.5pt;">' + synonym + '</div>'
@@ -451,7 +452,7 @@ class MyApp(QLabel):
             oneTypeDefs = []
             HAS_TYPE = 0
             if oneTypeDefsRaw[HAS_TYPE]:
-                oneType = ['<div style="margin-top:8px";><font color="#FFC107">' + oneTypeDefsRaw[
+                oneType = ['<div style="margin-top:8px;"><font color="#FFC107">' + oneTypeDefsRaw[
                     0].capitalize() + '</font></div>']
             DEFS = 1
             thisTypeDefs = oneTypeDefsRaw[DEFS]
@@ -469,7 +470,7 @@ class MyApp(QLabel):
         words = []
         for defType in wordsRaw[0]:
             if defType[0]:
-                html += '<div style="margin-top:8px";><font color="#FFC107">' + defType[0].capitalize() + '</font>: '
+                html += '<div style="margin-top:8px;"><font color="#FFC107">' + defType[0].capitalize() + '</font>: '
                 for word in defType[1]:
                     words.append('<font color=' + color[word[3] - 1] + '>‎' + word[0] + '‎</font>')
                 html += '<span>' + ', </span><span>'.join(words) + '</span></div>'
@@ -549,76 +550,140 @@ class MyApp(QLabel):
         message += '</div>'
         return message
 
+    def checkWordSpell(self, clipboard_content):
+        candidateWords = list(self.spell.candidates(clipboard_content))
+        candidateDic = {candidateWords[i]: self.spell.word_probability(candidateWords[i]) for i in
+                        range(len(candidateWords))}
+        sortedItem = sorted(candidateDic.items(), key=lambda item: item[1], reverse=True)
+        self.spellCandidate.clear()
+        for i in range(min(6, len(sortedItem))):
+            self.spellCandidate.append(sortedItem[i][0])
+        message = self.createMessageForSpellCheck(clipboard_content)
+        self.printToQT(message)
+        self.handleExplainStateFlag = True
+        self.spellCheckedFlag = True
+
+    def textIsWord(self, clipboard_content):
+        return clipboard_content.count(' ') == 0
+
+    def srcLangSupported(self):
+        return self._src in ['en', 'de', 'es', 'fr', 'pt']
+
+    def translateSentence(self, clipboard_content):
+        ans = self.textTranslator.translate(clipboard_content, dest=self._dest, src=self._src)
+        if self._src == 'auto':
+            self.textToSpeechObject.ttsLang = ans.src
+        # Numbering correct 1 \n word -> 1. word
+        ans.text = re.sub(r'((^|\n)\d+)\n', r'\g<1>. ', ans.text)
+        ans.text = ans.text.replace('\n', "<br>")
+        if self._dest in ['fa', 'ar']:
+            content = '<div dir="rtl">' + ans.text + '</div>'
+        else:
+            content = '<div>' + ans.text + '</div>'
+        self.printToQT(content)
+        self.addToHistory(clipboard_content, [content], False, False)
+
+    def translateWord(self, clipboard_content):
+        ans = self.wordTranslator.translate(clipboard_content.lower(), dest=self._dest, src=self._src)
+        ansData = ans.extra_data['parsed']
+        HAVE_DEFINITION = 4
+        if len(ansData) == HAVE_DEFINITION:
+            if self._src == 'auto':
+                SOURCE = 2
+                self.textToSpeechObject.ttsLang = ansData[SOURCE]
+            content = [self.headerText(clipboard_content, ansData)]
+            definitionsRaw = ansData[3][1]
+            wordsRaw = ansData[3][5]
+            definitionsCount = definitionsRaw[1] if definitionsRaw is not None else 0
+            isKindWord = False
+            if definitionsRaw is not None and definitionsCount != 0:
+                definitions = self.definitionsToHtml(definitionsRaw)
+                if definitions is not None:
+                    content.append(definitions)
+                    isKindWord = True
+            elif wordsRaw is not None:
+                content[0] += self.wordsToHtml(wordsRaw)
+            a = self.listToHtml(content, True)
+            self.printToQT(a)
+            self.addToHistory(clipboard_content, content, isKindWord, False)
+        else:
+            self.translateSentence(clipboard_content)
+
+    def replaceContent(self, numReqRep, kind):
+        definitionsCount = 0
+        content = copy.deepcopy(self.appHistory[self.currentState - 1][1])
+        flag = False
+        for eachType in range(len(content[1])):
+            for eachDef in range(len(content[1][eachType][len(content[1][eachType]) - 1])):
+                definitionsCount += 1
+                if numReqRep == definitionsCount:
+                    text = content[1][eachType][len(content[1][eachType]) - 1][eachDef]
+                    if kind == 'd':
+                        content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
+                            r'((<div>)|(<div style="margin-top:5px;">))([\w\s\,\.\!\?\'\'\(\)]+)(</div>)',
+                            r'\g<1>' + pyperclip.paste().strip() + '\g<5>', text)
+                    if kind == 'e':
+                        content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
+                            r'(<div><font color="#ccaca0">)([\w\s\,\.\!\?\"\'\(\)]+)(</font></div>)',
+                            r'\g<1>' + pyperclip.paste().strip() + '\g<3>', text)
+                    flag = True
+                    break
+        if flag:
+            self.printToQT(self.listToHtml(content, True))
+            temp = self.appHistory[self.currentState - 1]
+            self.addToHistory(temp[0], content, True, temp[3])
+
+    def addContent(self, numReqAdd, kind):
+        definitionsCount = 0
+        content = copy.deepcopy(self.appHistory[self.currentState - 1][1])
+        flag = False
+        for eachType in range(len(content[1])):
+            for eachDef in range(len(content[1][eachType][len(content[1][eachType]) - 1])):
+                definitionsCount += 1
+                if numReqAdd == definitionsCount:
+                    if kind == 'd':
+                        content[1][eachType][len(content[1][eachType]) - 1][
+                            eachDef] = '<div style="margin-top:5px;">' + pyperclip.paste().strip() + '</div>' + \
+                                       content[1][eachType][len(content[1][eachType]) - 1][eachDef]
+                    if kind == 'e':
+                        content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
+                            r'(.+)(<div style="font-size:9.5pt;">.+)',
+                            r'\g<1><div><font color="#ccaca0">' + pyperclip.paste().strip() + '\g<2></font></div>',
+                            content[1][eachType][len(content[1][eachType]) - 1][eachDef])
+                    flag = True
+                    break
+        if flag:
+            self.printToQT(self.listToHtml(content, True))
+            temp = self.appHistory[self.currentState - 1]
+            self.addToHistory(temp[0], content, True, temp[3])
+
     def mainEditTranslatePrint(self, clipboard_content):
         self.spellCheckedFlag = False
-        if (self.translationPermissionFlag and self.translatorOnOffFlag) and utility.isTextEmpty(clipboard_content) \
-                and utility.isTextURL(clipboard_content) and (re.search(r'</.+?>', clipboard_content) is None) \
-                and utility.isTextPassword(clipboard_content):
+        if (self.translationPermissionFlag and self.translatorOnOffFlag) and utility.textIsEmpty(clipboard_content) \
+                and utility.textIsURL(clipboard_content) and (re.search(r'</.+?>', clipboard_content) is None) \
+                and utility.textIsPassword(clipboard_content):
 
             clipboard_content = clipboard_content.strip()
 
             if self.autoEditFlag:
                 clipboard_content = self.autoEditDots(clipboard_content)
-            if self._src in ['en', 'de', 'es', 'fr', 'pt']:
+            if self.srcLangSupported():
                 self.spell = SpellChecker(language=self._src, distance=2)
-            if (' ' not in clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (
-                    self._src in ['en', 'de', 'es', 'fr', 'pt']) and self.checkWordCorrection and (
+            if self.textIsWord(clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (
+                    self.srcLangSupported()) and self.checkWordCorrection and (
                     len(self.spell.known({clipboard_content.strip(".,:;،٬٫/")})) == 0):
-                candidateWords = list(self.spell.candidates(clipboard_content))
-                candidateDic = {candidateWords[i]: self.spell.word_probability(candidateWords[i]) for i in
-                                range(len(candidateWords))}
-                sortedItem = sorted(candidateDic.items(), key=lambda item: item[1], reverse=True)
-                self.spellCandidate.clear()
-                for i in range(min(6, len(sortedItem))):
-                    self.spellCandidate.append(sortedItem[i][0])
-                message = self.createMessageForSpellCheck(clipboard_content)
-                self.printToQT(message)
-                self.handleExplainStateFlag = True
-                self.spellCheckedFlag = True
+                self.checkWordSpell(clipboard_content)
             else:
                 self.checkWordCorrection = True
                 tryCount = 0
                 condition = True  # try 3 time for translate
                 while condition:
                     try:
-                        ans = self.wordTranslator.translate(clipboard_content.lower(), dest=self._dest, src=self._src)
-                        ansData = ans.extra_data['parsed']
-                        HAVE_DEFINITION = 4
-                        if len(ansData) == HAVE_DEFINITION:
-                            if self._src == 'auto':
-                                SOURCE = 2
-                                self.textToSpeechObject.ttsLang = ansData[SOURCE]
-                            content = [self.headerText(clipboard_content, ansData)]
-                            definitionsRaw = ansData[3][1]
-                            wordsRaw = ansData[3][5]
-                            definitionsCount = definitionsRaw[1] if definitionsRaw is not None else 0
-                            isKindWord = False
-                            if definitionsRaw is not None and definitionsCount != 0:
-                                definitions = self.definitionsToHtml(definitionsRaw)
-                                if definitions is not None:
-                                    content.append(definitions)
-                                    isKindWord = True
-                            elif wordsRaw is not None:
-                                content[0] += self.wordsToHtml(wordsRaw)
-                            a = self.listToHtml(content, True)
-                            self.printToQT(a)
-                            self.addToHistory(clipboard_content, content, isKindWord, False)
-                            condition = False
-
+                        if self.textIsWord(clipboard_content):
+                            self.translateWord(clipboard_content)
                         else:
-                            ans = self.textTranslator.translate(clipboard_content, dest=self._dest, src=self._src)
-                            if self._src == 'auto':
-                                self.textToSpeechObject.ttsLang = ans.src
-                            # Numbering correct
-                            ans.text = re.sub(r'((^|\n)\d+)\n', r'\g<1>. ', ans.text)
-                            ans.text = ans.text.replace('\n', "<br>")
-                            if self._dest in ['fa', 'ar']:
-                                content = '<div dir="rtl">' + ans.text + '</div>'
-                            else:
-                                content = '<div>' + ans.text + '</div>'
-                            self.printToQT(content)
-                            self.addToHistory(clipboard_content, [content], False, False)
-                            condition = False
+                            self.translateSentence(clipboard_content)
+                        condition = False
                         self.handleExplainStateFlag = False
 
                     except Exception as e:
@@ -653,16 +718,21 @@ class MyApp(QLabel):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
-            isKindWord = self.appHistory[self.currentState - 1][2]
-            if self.numberPressedStorage != '' and isKindWord:
-                self.delDefFromTrans(int(self.numberPressedStorage))
+            if self.appHistory:
+                isKindWord = self.appHistory[self.currentState - 1][2]
+                if self.numberPressedStorage != '' and isKindWord:
+                    if self.addKeyFlag:
+                        self.addContent(int(self.numberPressedStorage), self.changeKeyFlag)
+                    elif self.replaceKeyFlag:
+                        self.replaceContent(int(self.numberPressedStorage), self.changeKeyFlag)
+                    else:
+                        self.delDefFromTrans(int(self.numberPressedStorage))
             self.numberPressedStorage = ''
+            self.changeKeyFlag = ''
+            self.addKeyFlag = False
+            self.replaceKeyFlag = False
 
-        keylist = range(48, 58)
-        if not self.spellCheckedFlag and event.key() in keylist:
-            self.numberPressedStorage += str(keylist.index(event.key()))
-        else:
-            self.numberPressedStorage = ''
+        numbersASCIICode = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 1776, 1777, 1778, 1779, 1780, 1781, 1782, 1783, 1784, 1785]
 
         if self.spellCheckedFlag:
             if event.key() == 48 or event.key() == 1776:
@@ -680,6 +750,47 @@ class MyApp(QLabel):
                 pyperclip.copy(self.spellCandidate[4])
             if event.key() == 54 or event.key() == 1782:
                 pyperclip.copy(self.spellCandidate[5])
+        elif event.key() == Qt.Key_C:
+            self.replaceKeyFlag = True
+            self.addKeyFlag = False
+            self.numberPressedStorage = ''
+            self.changeKeyFlag = ''
+        elif event.key() == Qt.Key_A:
+            self.addKeyFlag = True
+            self.replaceKeyFlag = False
+            self.numberPressedStorage = ''
+            self.changeKeyFlag = ''
+        elif self.replaceKeyFlag or self.addKeyFlag:
+            if event.key() == Qt.Key_E:
+                self.changeKeyFlag = 'e'
+                self.numberPressedStorage = ''
+            elif event.key() == Qt.Key_D:
+                self.changeKeyFlag = 'd'
+                self.numberPressedStorage = ''
+            elif self.changeKeyFlag in ['e', 'd']:
+                if event.key() in numbersASCIICode:
+                    self.numberPressedStorage += str(numbersASCIICode.index(event.key()))
+                else:
+                    self.numberPressedStorage = ''
+                    self.changeKeyFlag = ''
+                    self.addKeyFlag = False
+                    self.replaceKeyFlag = False
+            elif event.key() in numbersASCIICode:
+                self.numberPressedStorage += str(numbersASCIICode.index(event.key()))
+                self.addKeyFlag = False
+                self.replaceKeyFlag = False
+            else:
+                self.numberPressedStorage = ''
+                self.changeKeyFlag = ''
+                self.addKeyFlag = False
+                self.replaceKeyFlag = False
+        elif event.key() in numbersASCIICode:
+            self.numberPressedStorage += str(numbersASCIICode.index(event.key()))
+        else:
+            self.numberPressedStorage = ''
+            self.changeKeyFlag = ''
+            self.addKeyFlag = False
+            self.replaceKeyFlag = False
 
         if event.key() == Qt.Key_H or event.key() == 1575:
             self.printToQT(texts.instructionText)
@@ -717,7 +828,7 @@ class MyApp(QLabel):
             content = content.replace('style="font-size:8pt;', 'style="font-size:small;')
             content = content.replace('style="font-size:9.5pt;', 'style="font-size:medium;')
             self.myDeck.add_note(genanki.Note(model=self.ankiCardModel,
-                                              fields=[self.appHistory[self.currentState - 1][0],
+                                              fields=[self.appHistory[self.currentState - 1][0].strip().lower(),
                                                       content, '[sound:' + unique_filename + '.mp3' + ']']))
 
             self.myAnkiPackage.media_files.append(fullPath)
