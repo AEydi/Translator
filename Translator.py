@@ -91,6 +91,10 @@ class MyApp(QLabel):
     def setUIProperty(self):
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         self.setStyleSheet("QLabel { background-color : #151515; color : white; }")
+        self.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
+        self.setTextFormat(Qt.RichText)
+        self.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        self.setOpenExternalLinks(True)
         self.setMargin(5)
         self.setWordWrap(True)
         QtGui.QFontDatabase.addApplicationFont("font/IRANSansWeb.ttf")
@@ -406,6 +410,8 @@ class MyApp(QLabel):
 
     def printToQT(self, text):
         self.setText(text)
+        self.setTextFormat(Qt.RichText)
+        self.setTextInteractionFlags(Qt.TextBrowserInteraction)
         self.adjustSize()
         self.appMinimizeFlag = False
 
@@ -478,7 +484,8 @@ class MyApp(QLabel):
         return html
 
     def headerText(self, clipboard_content, ansData):
-        headerText = '<div><font color="#F50057">' + clipboard_content.capitalize() + '</font>'
+        headerText = '<div><a href="https://www.ldoceonline.com/dictionary/' + clipboard_content + '"  style="text-decoration:none"><font ' \
+                     'color="#F50057" text-decoration: "none">' + clipboard_content.capitalize() + '</font></a> '
         pronunciation = ansData[0][0]
         if pronunciation is not None:
             headerText = headerText + ' /' + pronunciation + '/'
@@ -538,13 +545,8 @@ class MyApp(QLabel):
         self.currentState += 1
 
     def createMessageForSpellCheck(self, clipboard_content):
-        message = '<div>I&nbsp;think<font color="#FFC107">&nbsp;' + clipboard_content + '&nbsp;</font>not' \
-                                                                                        '&nbsp;correct,' \
-                                                                                        '&nbsp;if&nbsp;I’m' \
-                                                                                        '&nbsp;wrong&nbsp' \
-                                                                                        ';press&nbsp;0&nbsp' \
-                                                                                        ';or&nbsp;select&nbsp' \
-                                                                                        ';one:<br></div><div> '
+        message = '<div>I&nbsp;think<font color="#FFC107">&nbsp;' + clipboard_content + '&nbsp;</font>not&nbsp;' \
+                  'correct,&nbsp;if&nbsp;I’m&nbsp;wrong&nbsp;press&nbsp;0&nbsp;or&nbsp;select&nbsp;one:<br></div><div>'
         for i in range(len(self.spellCandidate)):
             message += str(i + 1) + ':&nbsp;' + self.spellCandidate[i] + "&nbsp;&nbsp;"
         message += '</div>'
