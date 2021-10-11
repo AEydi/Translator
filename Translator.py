@@ -623,9 +623,12 @@ class MyApp(QLabel):
                 if numReqRep == definitionsCount:
                     text = content[1][eachType][len(content[1][eachType]) - 1][eachDef]
                     if kind == 'd':
+                        cash = pyperclip.paste().strip()
+                        if cash[-1] not in '.!?':
+                            cash += '.'
                         content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
                             r'((<div>)|(<div style="margin-top:5px;">))([\w\s\,\.\!\?\'\'\(\)]+)(</div>)',
-                            r'\g<1>' + pyperclip.paste().strip() + '\g<5>', text)
+                            r'\g<1>' + cash + '\g<5>', text)
                     if kind == 'e':
                         content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
                             r'(<div><font color="#ccaca0">)([\w\s\,\.\!\?\"\'\(\)]+)(</font></div>)',
@@ -646,8 +649,11 @@ class MyApp(QLabel):
                 definitionsCount += 1
                 if numReqAdd == definitionsCount:
                     if kind == 'd':
+                        cash = pyperclip.paste().strip()
+                        if cash[-1] not in '.!?':
+                            cash += '.'
                         content[1][eachType][len(content[1][eachType]) - 1][
-                            eachDef] = '<div style="margin-top:5px;">' + pyperclip.paste().strip() + '</div>' + \
+                            eachDef] = '<div style="margin-top:5px;">' + cash + '</div>' + \
                                        content[1][eachType][len(content[1][eachType]) - 1][eachDef]
                     if kind == 'e':
                         content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
