@@ -306,7 +306,9 @@ class MyApp(QLabel):
 
         if selectedAction == copyAllWithHtmlTagsButton:
             self.translationPermissionFlag = False
-            pyperclip.copy(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]))
+            pyperclip.copy(self.listToHtml(self.appHistory[self.currentState - 1][1], self.appHistory[self.currentState - 1][2]
+                                           ).replace('style="font-size:8pt;', 'style="font-size:small;'
+                                           ).replace('style="font-size:9.5pt;', 'style="font-size:medium;'))
 
         if selectedAction == copyAllAsTextButton:
             self.translationPermissionFlag = False
@@ -485,7 +487,7 @@ class MyApp(QLabel):
 
     def headerText(self, clipboard_content, ansData):
         headerText = '<div><a href="https://www.ldoceonline.com/dictionary/' + clipboard_content + '"  style="text-decoration:none"><font ' \
-                     'color="#F50057" text-decoration: "none">' + clipboard_content.capitalize() + '</font></a> '
+                     'color="#F50057">' + clipboard_content.capitalize() + '</font></a> '
         pronunciation = ansData[0][0]
         if pronunciation is not None:
             headerText = headerText + ' /' + pronunciation + '/'
@@ -649,7 +651,7 @@ class MyApp(QLabel):
                                        content[1][eachType][len(content[1][eachType]) - 1][eachDef]
                     if kind == 'e':
                         content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
-                            r'(.+)(<div style="font-size:9.5pt;">.+)',
+                            r'(.+)(<div><font color="#ccaca0">.+)',
                             r'\g<1><div><font color="#ccaca0">' + pyperclip.paste().strip() + '\g<2></font></div>',
                             content[1][eachType][len(content[1][eachType]) - 1][eachDef])
                     flag = True
