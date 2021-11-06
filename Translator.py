@@ -314,9 +314,6 @@ class MyApp(QLabel):
         if selectedAction == minimizeMaximizeButton:
             self.appMinMaxChange(not self.appMinimizeFlag)
 
-        if selectedAction == quitAppButton:
-            self.close()
-
         if (selectedAction == copySelectedTextWithoutTranslateButton) and self.hasSelectedText:
             self.translationPermissionFlag = False
             pyperclip.copy(self.selectedText())
@@ -356,6 +353,9 @@ class MyApp(QLabel):
 
         with open('properties.json', 'w') as f:
             json.dump(properties, f, indent=2)
+        f.close()
+        if selectedAction == quitAppButton:
+            self.close()
 
     def goForward(self):
         self.currentState += 1
@@ -715,6 +715,7 @@ class MyApp(QLabel):
                 while condition:
                     try:
                         if self.textIsWord(clipboard_content):
+                            clipboard_content = clipboard_content.strip(".,:;،٬٫/")
                             self.translateWord(clipboard_content)
                         else:
                             self.translateSentence(clipboard_content)

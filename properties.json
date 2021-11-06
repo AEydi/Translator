@@ -1,9 +1,9 @@
 {
   "color": "d",
-  "src": "auto",
+  "src": "en",
   "dest": "fa",
   "transOnOff": true,
   "ttsOnOff": false,
-  "autoEdit": false,
+  "autoEdit": true,
   "deckName": "IMPORTED"
 }
