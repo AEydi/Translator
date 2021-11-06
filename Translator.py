@@ -17,6 +17,8 @@ from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu, QSizePolicy
 from gtts import gTTS
 
 import texts
+import longman3000
+import json
 import wordsHaveDot
 from TextToSpeech import TextToSpeech
 from googletrans import TextTranslator
@@ -38,6 +40,8 @@ class MyApp(QLabel):
         super().__init__(*args, **kwargs)
         self.setUIProperty()
         self.setWelcomeText()
+        with open('properties.json', 'r') as f:
+            properties = json.load(f)
         self.appHistory = []
         self.currentState = 0
         self.handleExplainStateFlag = False
@@ -47,29 +51,29 @@ class MyApp(QLabel):
         self.changeKeyFlag = ''
         self.exportFolderPath = utility.createExportFolder()
         self.ankiCardModel = utility.createAnkiCardsModel()
-        self.myDeck = genanki.Deck(2054560191, utility.myDeckName())
+        self.myDeck = genanki.Deck(2054560191, properties['deckName'])
         self.myAnkiPackage = genanki.Package(self.myDeck)
         self._initTime = datetime.now()  # save deck with date name
         self.savedWordsList = []  # list of previous saved word
-        self.iconsColor = utility.readIconsColorFromTextFile()
+        self.iconsColor = properties['color']
         self.textTranslator = TextTranslator()  # translator object
         self.wordTranslator = WordTranslator()
         self.watcher = ClipboardWatcher()
         self.watcher.signal.connect(self.mainEditTranslatePrint)
         self.textToSpeechObject = TextToSpeech()
         self.textToSpeechObject.start()
-        self.ttsOnOffFlag = False  # on off text to speech
+        self.ttsOnOffFlag = properties['ttsOnOff']  # on off text to speech
         self.appMinimizeFlag = False  # min max flag
         self.translationPermissionFlag = True
-        self.translatorOnOffFlag = True
-        self._src = 'en'
-        self._dest = 'fa'
+        self.translatorOnOffFlag = properties['transOnOff']
+        self._src = properties['src']
+        self._dest = properties['dest']
         # spell checker config
         self.spell = SpellChecker(distance=2)
         self.spellCandidate = []
         self.checkWordCorrection = True
         self.spellCheckedFlag = False
-        self.autoEditFlag = True
+        self.autoEditFlag = properties['autoEdit']
         self.requiredDotsRegex = re.compile(
             r"((^|[^\w])([a-zA-Z]\.)+)(\w+\.|[^\w]|\w|$)|([^\w]|\d)\.\d")  # required dots i.e. i.5 2.5 d.o.t .6 $2.
         self.sourceLanguageList = texts.sourceLanguageList
@@ -220,6 +224,9 @@ class MyApp(QLabel):
             colorActions[i].setIcon(QtGui.QIcon('icons/' + colorList[i] + '.png'))
         optionMenu.addMenu(iconsColorMenu)
 
+        deckNameButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/save.png'),
+                                              'Use Clipboard as DeckName')
+
         copyMenu = QMenu(contextMenu)
         copyMenu.setTitle('Copy')
         copyMenu.setIcon(QtGui.QIcon('icons/' + self.iconsColor + '/copy.png'))
@@ -242,16 +249,20 @@ class MyApp(QLabel):
 
         selectedAction = contextMenu.exec_(self.mapToGlobal(event.pos()))
 
+        with open('properties.json', 'r') as f:
+            properties = json.load(f)
+
         # actions
+        if selectedAction == deckNameButton:
+            properties['deckName'] = pyperclip.paste()
+            self.myDeck = genanki.Deck(2054560191, properties['deckName'])
+            self.myAnkiPackage = genanki.Package(self.myDeck)
+            self._initTime = datetime.now()
+
         for i in colorActions:
             if selectedAction == colorActions[i]:
-                try:
-                    self.iconsColor = colorList[i]
-                    fileWrite = open('color.txt', "w")
-                    fileWrite.write(colorList[i])
-                    fileWrite.close()
-                except (Exception,):
-                    pass
+                self.iconsColor = colorList[i]
+                properties['color'] = colorList[i]
 
         if selectedAction == autoEditButton:
             self.autoEditFlag = not self.autoEditFlag
@@ -268,22 +279,28 @@ class MyApp(QLabel):
                 self._src, self._dest = self._dest, self._src
                 self.textToSpeechObject.lastPlayedText = ''
                 self.textToSpeechObject.ttsLang = self._src
+                properties['src'] = self._src
+                properties['dest'] = self._dest
 
         for i in sourceLanguageActions:
             if selectedAction == sourceLanguageActions[i]:
                 self._src = self.sourceLanguageList[i]
+                properties['src'] = self._src
                 self.textToSpeechObject.ttsLang = self.sourceLanguageList[i]
                 self.textToSpeechObject.lastPlayedText = ''
 
         for i in destinationLanguageActions:
             if selectedAction == destinationLanguageActions[i]:
                 self._dest = self.destinationLanguageList[i]
+                properties['dest'] = self._dest
 
         if selectedAction == onOffTranslateActionButton:
             self.translatorOnOffFlag = not self.translatorOnOffFlag
+            properties['transOnOff'] = self.translatorOnOffFlag
 
         if selectedAction == ttsOnOffButton:
             self.ttsOnOffFlag = not self.ttsOnOffFlag
+            properties['ttsOnOff'] = self.ttsOnOffFlag
 
         if selectedAction == saveAnswerToAnkiCardButton:
             self.saveAnki()
@@ -336,6 +353,9 @@ class MyApp(QLabel):
                 else:
                     if self.appHistory[self.currentState - 1][0].lower() != pyperclip.paste().lower():
                         self.mainEditTranslatePrint(pyperclip.paste())
+
+        with open('properties.json', 'w') as f:
+            json.dump(properties, f, indent=2)
 
     def goForward(self):
         self.currentState += 1
@@ -487,10 +507,12 @@ class MyApp(QLabel):
 
     def headerText(self, clipboard_content, ansData):
         headerText = '<div><a href="https://www.ldoceonline.com/dictionary/' + clipboard_content + '"  style="text-decoration:none"><font ' \
-                     'color="#F50057">' + clipboard_content.capitalize() + '</font></a> '
+                     'color="#F50057">' + clipboard_content.capitalize() + '</font></a>&nbsp;'
         pronunciation = ansData[0][0]
         if pronunciation is not None:
-            headerText = headerText + ' /' + pronunciation + '/'
+            headerText = headerText + '&nbsp;/' + pronunciation + '/'
+        if clipboard_content in longman3000.words:
+            headerText += '&nbsp;<span style="font-size:8pt;background-color:#a80029;">&nbsp;' + longman3000.words[clipboard_content] + '&nbsp;</span>'
         seeAlso = ansData[3][3]
         if seeAlso is not None:
             seeAlso = ', '.join(seeAlso[0])
@@ -627,12 +649,12 @@ class MyApp(QLabel):
                         if cash[-1] not in '.!?':
                             cash += '.'
                         content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
-                            r'((<div>)|(<div style="margin-top:5px;">))([\w\s\,\.\!\?\'\'\(\)]+)(</div>)',
+                            r'((<div>)|(<div style="margin-top:5px;">))([\w\s\,\.\!\?\'\"\@\$\%\&\-\+\*\/\\\:\;\^\#\(\)]+)(<\/div>)',
                             r'\g<1>' + cash + '\g<5>', text)
                     if kind == 'e':
                         content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
-                            r'(<div><font color="#ccaca0">)([\w\s\,\.\!\?\"\'\(\)]+)(</font></div>)',
-                            r'\g<1>' + pyperclip.paste().strip() + '\g<3>', text)
+                            r'((<div><font color="#ccaca0">)([\w\s\,\.\!\?\'\"\@\$\%\&\-\+\*\/\\\:\;\^\#\(\)]+)(<\/font><\/div>))+',
+                            r'\g<2>' + pyperclip.paste().strip() + '\g<4>', text)
                     flag = True
                     break
         if flag:
@@ -652,14 +674,17 @@ class MyApp(QLabel):
                         cash = pyperclip.paste().strip()
                         if cash[-1] not in '.!?':
                             cash += '.'
-                        content[1][eachType][len(content[1][eachType]) - 1][
-                            eachDef] = '<div style="margin-top:5px;">' + cash + '</div>' + \
-                                       content[1][eachType][len(content[1][eachType]) - 1][eachDef]
+                        cash = (lambda x: x + cash + '</div>')('<div>' if eachDef == 0 else '<div style="margin-top:5px;">')
+                        content[1][eachType][len(content[1][eachType]) - 1].insert(eachDef, cash)
                     if kind == 'e':
-                        content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
-                            r'(.+)(<div><font color="#ccaca0">.+)',
-                            r'\g<1><div><font color="#ccaca0">' + pyperclip.paste().strip() + '\g<2></font></div>',
-                            content[1][eachType][len(content[1][eachType]) - 1][eachDef])
+                        if '<div><font color="#ccaca0">' in content[1][eachType][len(content[1][eachType]) - 1][eachDef]:
+                            content[1][eachType][len(content[1][eachType]) - 1][eachDef] = re.sub(
+                                r'(.+)(<div><font color="#ccaca0">.+)',
+                                r'\g<1><div><font color="#ccaca0">' + pyperclip.paste().strip() + '</font></div>\g<2>',
+                                content[1][eachType][len(content[1][eachType]) - 1][eachDef])
+                        else:
+                            content[1][eachType][len(content[1][eachType]) - 1][
+                                eachDef] += '<div><font color="#ccaca0">' + pyperclip.paste().strip() + '</font></div>'
                     flag = True
                     break
         if flag:
@@ -742,7 +767,8 @@ class MyApp(QLabel):
             self.addKeyFlag = False
             self.replaceKeyFlag = False
 
-        numbersASCIICode = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 1776, 1777, 1778, 1779, 1780, 1781, 1782, 1783, 1784, 1785]
+        numbersASCIICode = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57]
+        pNumbersASCIICode = [1776, 1777, 1778, 1779, 1780, 1781, 1782, 1783, 1784, 1785]
 
         if self.spellCheckedFlag:
             if event.key() == 48 or event.key() == 1776:
@@ -760,26 +786,28 @@ class MyApp(QLabel):
                 pyperclip.copy(self.spellCandidate[4])
             if event.key() == 54 or event.key() == 1782:
                 pyperclip.copy(self.spellCandidate[5])
-        elif event.key() == Qt.Key_C:
+        elif event.key() in [67, 1586, 1572]: # C
             self.replaceKeyFlag = True
             self.addKeyFlag = False
             self.numberPressedStorage = ''
             self.changeKeyFlag = ''
-        elif event.key() == Qt.Key_A:
+        elif event.key() in [65, 1588]: # A
             self.addKeyFlag = True
             self.replaceKeyFlag = False
             self.numberPressedStorage = ''
             self.changeKeyFlag = ''
         elif self.replaceKeyFlag or self.addKeyFlag:
-            if event.key() == Qt.Key_E:
+            if event.key() in [69, 1579]: # E
                 self.changeKeyFlag = 'e'
                 self.numberPressedStorage = ''
-            elif event.key() == Qt.Key_D:
+            elif event.key() in [68, 1740, 1610]: # D
                 self.changeKeyFlag = 'd'
                 self.numberPressedStorage = ''
             elif self.changeKeyFlag in ['e', 'd']:
                 if event.key() in numbersASCIICode:
                     self.numberPressedStorage += str(numbersASCIICode.index(event.key()))
+                elif event.key() in pNumbersASCIICode:
+                    self.numberPressedStorage += str(pNumbersASCIICode.index(event.key()))
                 else:
                     self.numberPressedStorage = ''
                     self.changeKeyFlag = ''
@@ -789,6 +817,10 @@ class MyApp(QLabel):
                 self.numberPressedStorage += str(numbersASCIICode.index(event.key()))
                 self.addKeyFlag = False
                 self.replaceKeyFlag = False
+            elif event.key() in pNumbersASCIICode:
+                self.numberPressedStorage += str(pNumbersASCIICode.index(event.key()))
+                self.addKeyFlag = False
+                self.replaceKeyFlag = False
             else:
                 self.numberPressedStorage = ''
                 self.changeKeyFlag = ''
@@ -796,17 +828,19 @@ class MyApp(QLabel):
                 self.replaceKeyFlag = False
         elif event.key() in numbersASCIICode:
             self.numberPressedStorage += str(numbersASCIICode.index(event.key()))
+        elif event.key() in pNumbersASCIICode:
+            self.numberPressedStorage += str(pNumbersASCIICode.index(event.key()))
         else:
             self.numberPressedStorage = ''
             self.changeKeyFlag = ''
             self.addKeyFlag = False
             self.replaceKeyFlag = False
 
-        if event.key() == Qt.Key_H or event.key() == 1575:
+        if event.key() in [72, 1575]: # H
             self.printToQT(texts.instructionText)
             self.handleExplainStateFlag = True
 
-        if event.key() == Qt.Key_R or event.key() == 1602:
+        if event.key() in [82, 1602]: # R
             self.textToSpeechObject.previousText = ''
             if self.translatorOnOffFlag:
                 self.textToSpeechObject.Read(self.appHistory[self.currentState - 1][0])

@@ -4,23 +4,6 @@ import re
 import platform
 import wordsHaveDot
 
-
-def readIconsColorFromTextFile():
-    try:
-        fileRead = open("color.txt", "r")
-        color = fileRead.read()
-        fileRead.close()
-    except (Exception,):
-        color = 'd'
-        try:
-            fileWrite = open('color.txt', "w")
-            fileWrite.write('d')
-            fileWrite.close()
-        except (Exception,):
-            pass
-    return color
-
-
 def createAnkiCardsModel():
     CardModel = genanki.Model(
         1380120064,
@@ -54,22 +37,6 @@ def createAnkiCardsModel():
             }
         ''')
     return CardModel
-
-
-def myDeckName():
-    try:
-        fileRead = open("deckName.txt", "r")
-        myDeckName = fileRead.read()
-        fileRead.close()
-    except Exception:
-        myDeckName = 'IMPORTED'
-        try:
-            fileWrite = open('deckName.txt', "w")
-            fileWrite.write('IMPORTED')
-            fileWrite.close()
-        except (Exception,):
-            pass
-    return myDeckName
 
 
 def createExportFolder():
