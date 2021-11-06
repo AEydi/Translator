@@ -18,7 +18,7 @@ from gtts import gTTS
 
 import texts
 import longman3000
-import words1212
+import toeflWords
 import json
 import wordsHaveDot
 from TextToSpeech import TextToSpeech
@@ -514,8 +514,8 @@ class MyApp(QLabel):
             headerText = headerText + '&nbsp;/' + pronunciation + '/'
         if clipboard_content in longman3000.words:
             headerText += '&nbsp;<span style="font-size:8pt;background-color:#a80029;">&nbsp;' + longman3000.words[clipboard_content] + '&nbsp;</span>'
-        if clipboard_content in words1212.words:
-            headerText += '&nbsp;<span style="font-size:8pt;background-color:#a80029;">&nbsp;1212&nbsp;</span>'
+        if clipboard_content in toeflWords.words:
+            headerText += '&nbsp;<span style="font-size:8pt;background-color:#0D47A1;">&nbsp;TOEFL&nbsp;</span>'
         seeAlso = ansData[3][3]
         if seeAlso is not None:
             seeAlso = ', '.join(seeAlso[0])
