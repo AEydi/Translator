@@ -672,7 +672,11 @@ class MyApp(QLabel):
         for eachType in range(len(content[1])):
             for eachDef in range(len(content[1][eachType][len(content[1][eachType]) - 1])):
                 definitionsCount += 1
-                if numReqAdd == definitionsCount:
+                extraDef = False
+                if eachType == len(content[1]) - 1 and eachDef == len(content[1][eachType][len(content[1][eachType]) - 1]) - 1 and numReqAdd == definitionsCount + 1 and kind == 'd':
+                    extraDef = True
+                    eachDef += 1
+                if numReqAdd == definitionsCount or extraDef:
                     if kind == 'd':
                         cash = pyperclip.paste().strip()
                         if cash[-1] not in '.!?':
