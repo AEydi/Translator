@@ -613,7 +613,8 @@ class MyApp(QLabel):
         self.addToHistory(clipboard_content, [content], False, False)
 
     def translateWord(self, clipboard_content):
-        ans = self.wordTranslator.translate(clipboard_content.lower(), dest=self._dest, src=self._src)
+        clipboard_content = clipboard_content.lower()
+        ans = self.wordTranslator.translate(clipboard_content, dest=self._dest, src=self._src)
         ansData = ans.extra_data['parsed']
         HAVE_DEFINITION = 4
         if len(ansData) == HAVE_DEFINITION:
@@ -767,7 +768,6 @@ class MyApp(QLabel):
         self.watcher.stop()
 
     def keyPressEvent(self, event):
-        print(event.key())
         if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
             if self.appHistory:
                 isKindWord = self.appHistory[self.currentState - 1][2]
