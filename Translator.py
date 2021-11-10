@@ -673,10 +673,17 @@ class MyApp(QLabel):
             for eachDef in range(len(content[1][eachType][len(content[1][eachType]) - 1])):
                 definitionsCount += 1
                 extraDef = False
-                if eachType == len(content[1]) - 1 and eachDef == len(content[1][eachType][len(content[1][eachType]) - 1]) - 1 and numReqAdd == definitionsCount + 1 and kind == 'd':
+                if eachType == len(content[1]) - 1 and eachDef == len(content[1][eachType][len(content[1][eachType]) - 1]) - 1 and numReqAdd == definitionsCount + 1 and (kind == 'd' or kind == 'w'):
                     extraDef = True
                     eachDef += 1
                 if numReqAdd == definitionsCount or extraDef:
+                    if kind == 'w':
+                        cash = pyperclip.paste()
+                        cash = cash.replace('style="font-size:small;', 'style="font-size:8pt;')
+                        cash = cash.replace('style="font-size:medium;', 'style="font-size:9.5pt;')
+                        cash = (lambda x: x + cash + '</div>')(
+                            '<div>' if eachDef == 0 else '<div style="margin-top:5px;">')
+                        content[1][eachType][len(content[1][eachType]) - 1].insert(eachDef, cash)
                     if kind == 'd':
                         cash = pyperclip.paste().strip()
                         if cash[-1] not in '.!?':
@@ -744,7 +751,7 @@ class MyApp(QLabel):
                         QApplication.processEvents()
                         if tryCount > 2:
                             condition = False
-                    if self.ttsOnOffFlag & (not condition):
+                    if self.ttsOnOffFlag and not condition and self.currentState != 0 and len(self.appHistory) >= self.currentState:
                         self.textToSpeechObject.Read(self.appHistory[self.currentState - 1][0])
 
         if self.ttsOnOffFlag and not self.translatorOnOffFlag:
@@ -760,6 +767,7 @@ class MyApp(QLabel):
         self.watcher.stop()
 
     def keyPressEvent(self, event):
+        print(event.key())
         if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
             if self.appHistory:
                 isKindWord = self.appHistory[self.currentState - 1][2]
@@ -794,24 +802,27 @@ class MyApp(QLabel):
                 pyperclip.copy(self.spellCandidate[4])
             if event.key() == 54 or event.key() == 1782:
                 pyperclip.copy(self.spellCandidate[5])
-        elif event.key() in [67, 1586, 1572]: # C
+        elif event.key() in [67, 1586, 1572]: # C (Change)
             self.replaceKeyFlag = True
             self.addKeyFlag = False
             self.numberPressedStorage = ''
             self.changeKeyFlag = ''
-        elif event.key() in [65, 1588]: # A
+        elif event.key() in [65, 1588]: # A (Add)
             self.addKeyFlag = True
             self.replaceKeyFlag = False
             self.numberPressedStorage = ''
             self.changeKeyFlag = ''
         elif self.replaceKeyFlag or self.addKeyFlag:
-            if event.key() in [69, 1579]: # E
+            if event.key() in [69, 1579]: # E (Example)
                 self.changeKeyFlag = 'e'
                 self.numberPressedStorage = ''
-            elif event.key() in [68, 1740, 1610]: # D
+            elif event.key() in [68, 1740, 1610]: # D (Definition)
                 self.changeKeyFlag = 'd'
                 self.numberPressedStorage = ''
-            elif self.changeKeyFlag in ['e', 'd']:
+            elif event.key() in [87, 1589] and self.addKeyFlag: # W (Whole)
+                self.changeKeyFlag = 'w'
+                self.numberPressedStorage = ''
+            elif self.changeKeyFlag in ['e', 'd', 'w']:
                 if event.key() in numbersASCIICode:
                     self.numberPressedStorage += str(numbersASCIICode.index(event.key()))
                 elif event.key() in pNumbersASCIICode:
