@@ -721,7 +721,7 @@ class MyApp(QLabel):
                 self.spell = SpellChecker(language=self._src, distance=2)
             if self.textIsWord(clipboard_content) and (len(self.spell.known({clipboard_content})) == 0) and (
                     self.srcLangSupported()) and self.checkWordCorrection and (
-                    len(self.spell.known({clipboard_content.strip(".,:;،٬٫/")})) == 0):
+                    len(self.spell.known({clipboard_content.strip(".,:;،٬٫/")})) == 0) and not re.search(r"\.|_|-", clipboard_content):
                 self.checkWordSpell(clipboard_content)
             else:
                 self.checkWordCorrection = True
