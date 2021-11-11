@@ -596,7 +596,7 @@ class MyApp(QLabel):
         return clipboard_content.count(' ') == 0
 
     def srcLangSupported(self):
-        return self._src in ['en', 'de', 'es', 'fr', 'pt']
+        return self._src in ['en', 'de', 'es', 'fr', 'pt', 'ru']
 
     def translateSentence(self, clipboard_content):
         ans = self.textTranslator.translate(clipboard_content, dest=self._dest, src=self._src)
