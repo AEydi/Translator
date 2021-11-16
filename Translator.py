@@ -15,6 +15,7 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu, QSizePolicy
 from gtts import gTTS
+from oxfordN import Word
 
 import texts
 import longman3000
@@ -49,6 +50,7 @@ class MyApp(QLabel):
         self.numberPressedStorage = ''
         self.addKeyFlag = False
         self.replaceKeyFlag = False
+        self.optionChanged = False
         self.changeKeyFlag = ''
         self.exportFolderPath = utility.createExportFolder()
         self.ankiCardModel = utility.createAnkiCardsModel()
@@ -69,6 +71,7 @@ class MyApp(QLabel):
         self.translatorOnOffFlag = properties['transOnOff']
         self._src = properties['src']
         self._dest = properties['dest']
+        self.dictionary = properties['dictionary']
         # spell checker config
         self.spell = SpellChecker(distance=2)
         self.spellCandidate = []
@@ -227,6 +230,12 @@ class MyApp(QLabel):
 
         deckNameButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/save.png'),
                                               'Use Clipboard as DeckName')
+        if self.dictionary == 'google':
+            dictionaryButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/option.png'),
+                                              'Google -> Oxford American')
+        elif self.dictionary == 'oxford':
+            dictionaryButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/option.png'),
+                                              'Oxford American -> Google')
 
         copyMenu = QMenu(contextMenu)
         copyMenu.setTitle('Copy')
@@ -254,6 +263,14 @@ class MyApp(QLabel):
             properties = json.load(f)
 
         # actions
+        if selectedAction == dictionaryButton:
+            if self.dictionary == 'google':
+                self.dictionary = 'oxford'
+            else:
+                self.dictionary = 'google'
+            properties['dictionary'] = self.dictionary
+            self.optionChanged = True
+
         if selectedAction == deckNameButton:
             properties['deckName'] = pyperclip.paste()
             self.myDeck = genanki.Deck(2054560191, properties['deckName'])
@@ -267,6 +284,7 @@ class MyApp(QLabel):
 
         if selectedAction == autoEditButton:
             self.autoEditFlag = not self.autoEditFlag
+            self.optionChanged = True
 
         if win10 and self.textToSpeechObject.ttsLang == 'en':
             if selectedAction == selectTTSEngineButton:
@@ -282,6 +300,7 @@ class MyApp(QLabel):
                 self.textToSpeechObject.ttsLang = self._src
                 properties['src'] = self._src
                 properties['dest'] = self._dest
+                self.optionChanged = True
 
         for i in sourceLanguageActions:
             if selectedAction == sourceLanguageActions[i]:
@@ -289,11 +308,13 @@ class MyApp(QLabel):
                 properties['src'] = self._src
                 self.textToSpeechObject.ttsLang = self.sourceLanguageList[i]
                 self.textToSpeechObject.lastPlayedText = ''
+                self.optionChanged = True
 
         for i in destinationLanguageActions:
             if selectedAction == destinationLanguageActions[i]:
                 self._dest = self.destinationLanguageList[i]
                 properties['dest'] = self._dest
+                self.optionChanged = True
 
         if selectedAction == onOffTranslateActionButton:
             self.translatorOnOffFlag = not self.translatorOnOffFlag
@@ -338,8 +359,14 @@ class MyApp(QLabel):
                         pyperclip.copy(self.selectedText())
                 else:
                     if self.appHistory[self.currentState - 1][0].lower() == self.selectedText().lower():
-                        self.translationPermissionFlag = False
-                        pyperclip.copy(self.selectedText())
+                        if self.optionChanged:
+                            if pyperclip.paste().lower() == self.selectedText().lower():
+                                self.mainEditTranslatePrint(self.selectedText())
+                            else:
+                                pyperclip.copy(self.selectedText())
+                        else:
+                            self.translationPermissionFlag = False
+                            pyperclip.copy(self.selectedText())
                     else:
                         if pyperclip.paste().lower() == self.selectedText().lower():
                             self.mainEditTranslatePrint(self.selectedText())
@@ -351,6 +378,9 @@ class MyApp(QLabel):
                 else:
                     if self.appHistory[self.currentState - 1][0].lower() != pyperclip.paste().lower():
                         self.mainEditTranslatePrint(pyperclip.paste())
+                    else:
+                        if self.optionChanged:
+                            self.mainEditTranslatePrint(pyperclip.paste())
 
         with open('properties.json', 'w') as f:
             json.dump(properties, f, indent=2)
@@ -438,7 +468,7 @@ class MyApp(QLabel):
         self.adjustSize()
         self.appMinimizeFlag = False
 
-    def createAns(self, eachDef, dontAddMarginAfterType):
+    def createAnsGoogle(self, eachDef, dontAddMarginAfterType):
         DEF = 0
         EXAMPLE = 1
         EXTRA_EXPLAIN = 4
@@ -474,6 +504,25 @@ class MyApp(QLabel):
             html += '<div style="font-size:9.5pt;">' + synonym + '</div>'
         return html, dontAddMarginAfterType
 
+    def createAnsOxford(self, Defs, dontAddMarginAfterType, namespace):
+        html = ''
+        if 'description' in Defs:
+            if dontAddMarginAfterType:
+                html += '<div>'
+                dontAddMarginAfterType = False
+            else:
+                html += '<div style="margin-top:5px;">'
+            if 'label' in Defs:
+                html += '<span style="font-size:8pt;line-height:11pt;background-color:#424242;padding-left: 1pt;' \
+                        'padding-right:1pt;"><font color="#b0bec5"> ' + Defs['label'].strip('()').upper() + '</font></span> '
+
+            if namespace != '__GLOBAL__':
+                html += '<span style="font-size:8pt">(' + namespace + ')</span> '
+            html += Defs['description'] + '</div>'
+            if bool(len(Defs['examples'])):
+                html += '<div><font color="#ccaca0">' + Defs['examples'][0] + '</font></div>'
+        return html, dontAddMarginAfterType
+
     def definitionsToHtml(self, definitionsRaw):
         definitions = []
         for oneTypeDefsRaw in definitionsRaw[0]:
@@ -487,7 +536,7 @@ class MyApp(QLabel):
             thisTypeDefs = oneTypeDefsRaw[DEFS]
             dontAddMarginAfterType = True
             for eachDef in thisTypeDefs:
-                defHtml, dontAddMarginAfterType = self.createAns(eachDef, dontAddMarginAfterType)
+                defHtml, dontAddMarginAfterType = self.createAnsGoogle(eachDef, dontAddMarginAfterType)
                 oneTypeDefs.append(defHtml)
             oneType.append(oneTypeDefs)
             definitions.append(oneType)
@@ -506,17 +555,17 @@ class MyApp(QLabel):
                 words = []
         return html
 
-    def headerText(self, clipboard_content, ansData):
+    def headerText(self, clipboard_content, pronunciation=None, seeAlso=None):
         headerText = '<div><a href="https://www.ldoceonline.com/dictionary/' + clipboard_content + '"  style="text-decoration:none"><font ' \
                      'color="#F50057">' + clipboard_content.capitalize() + '</font></a>&nbsp;'
-        pronunciation = ansData[0][0]
+
         if pronunciation is not None:
             headerText = headerText + '&nbsp;/' + pronunciation + '/'
         if clipboard_content in longman3000.words:
             headerText += '&nbsp;<span style="font-size:8pt;background-color:#a80029;">&nbsp;' + longman3000.words[clipboard_content] + '&nbsp;</span>'
         if clipboard_content in toeflWords.words:
             headerText += '&nbsp;<span style="font-size:8pt;background-color:#0D47A1;">&nbsp;TOEFL&nbsp;</span>'
-        seeAlso = ansData[3][3]
+
         if seeAlso is not None:
             seeAlso = ', '.join(seeAlso[0])
             headerText = headerText + '&nbsp;&nbsp;&nbsp;' + '<span style="font-size:8pt;"><font ' \
@@ -612,7 +661,7 @@ class MyApp(QLabel):
         self.printToQT(content)
         self.addToHistory(clipboard_content, [content], False, False)
 
-    def translateWord(self, clipboard_content):
+    def translateWordGoogle(self, clipboard_content):
         clipboard_content = clipboard_content.lower()
         ans = self.wordTranslator.translate(clipboard_content, dest=self._dest, src=self._src)
         ansData = ans.extra_data['parsed']
@@ -621,7 +670,7 @@ class MyApp(QLabel):
             if self._src == 'auto':
                 SOURCE = 2
                 self.textToSpeechObject.ttsLang = ansData[SOURCE]
-            content = [self.headerText(clipboard_content, ansData)]
+            content = [self.headerText(clipboard_content, pronunciation=ansData[0][0], seeAlso=ansData[3][3])]
             definitionsRaw = ansData[3][1]
             wordsRaw = ansData[3][5]
             definitionsCount = definitionsRaw[1] if definitionsRaw is not None else 0
@@ -633,9 +682,43 @@ class MyApp(QLabel):
                     isKindWord = True
             elif wordsRaw is not None:
                 content[0] += self.wordsToHtml(wordsRaw)
-            a = self.listToHtml(content, True)
-            self.printToQT(a)
+            html = self.listToHtml(content, True)
+            self.printToQT(html)
             self.addToHistory(clipboard_content, content, isKindWord, False)
+        else:
+            self.translateSentence(clipboard_content)
+
+    def translateWordOxford(self, clipboard_content):
+        clipboard_content = clipboard_content.lower()
+        found = Word.get(clipboard_content)
+
+        if found != 'not found':
+            content = [self.headerText(clipboard_content, pronunciation=Word.pronunciations()['ipa'])]
+            ids = Word.ids()
+            definitions = []
+            for id in range(len(ids)):
+                if id != 0:
+                    found = Word.get(ids[id])
+                nameSpaces = Word.definitions(full=True)
+                oneType = []
+                oneTypeDefs = []
+                wordType = Word.wordform()
+                if wordType:
+                    oneType = ['<div style="margin-top:8px;"><font color="#FFC107">' + wordType.capitalize() + '</font></div>']
+                dontAddMarginAfterType = True
+                for nameSpace in nameSpaces:
+                    for Defs in nameSpace['definitions']:
+                        defHtml, dontAddMarginAfterType = self.createAnsOxford(Defs, dontAddMarginAfterType, nameSpace['namespace'])
+                        if bool(defHtml):
+                            oneTypeDefs.append(defHtml)
+                oneType.append(oneTypeDefs)
+                definitions.append(oneType)
+            content.append(definitions)
+
+            b = 1
+            html = self.listToHtml(content, True)
+            self.printToQT(html)
+            self.addToHistory(clipboard_content, content, True, False)
         else:
             self.translateSentence(clipboard_content)
 
@@ -731,10 +814,14 @@ class MyApp(QLabel):
                     try:
                         if self.textIsWord(clipboard_content):
                             clipboard_content = clipboard_content.strip(".,:;،٬٫/")
-                            self.translateWord(clipboard_content)
+                            if self.dictionary == 'google':
+                                self.translateWordGoogle(clipboard_content)
+                            elif self.dictionary == 'oxford':
+                                self.translateWordOxford(clipboard_content)
                         else:
                             self.translateSentence(clipboard_content)
                         condition = False
+                        self.optionChanged = False
                         self.handleExplainStateFlag = False
 
                     except Exception as e:
