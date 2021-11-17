@@ -15,7 +15,7 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QLabel, QStyle, QMenu, QSizePolicy
 from gtts import gTTS
-from oxfordN import Word
+from americanOxford import Word
 
 import texts
 import longman3000
@@ -699,20 +699,24 @@ class MyApp(QLabel):
             for id in range(len(ids)):
                 if id != 0:
                     found = Word.get(ids[id])
-                nameSpaces = Word.definitions(full=True)
-                oneType = []
-                oneTypeDefs = []
-                wordType = Word.wordform()
-                if wordType:
-                    oneType = ['<div style="margin-top:8px;"><font color="#FFC107">' + wordType.capitalize() + '</font></div>']
-                dontAddMarginAfterType = True
-                for nameSpace in nameSpaces:
-                    for Defs in nameSpace['definitions']:
-                        defHtml, dontAddMarginAfterType = self.createAnsOxford(Defs, dontAddMarginAfterType, nameSpace['namespace'])
-                        if bool(defHtml):
-                            oneTypeDefs.append(defHtml)
-                oneType.append(oneTypeDefs)
-                definitions.append(oneType)
+                try:
+                    nameSpaces = Word.definitions(full=True)
+                except:
+                    nameSpaces = ''
+                if bool(nameSpaces):
+                    oneType = []
+                    oneTypeDefs = []
+                    wordType = Word.wordform()
+                    if wordType:
+                        oneType = ['<div style="margin-top:8px;"><font color="#FFC107">' + wordType.capitalize() + '</font></div>']
+                    dontAddMarginAfterType = True
+                    for nameSpace in nameSpaces:
+                        for Defs in nameSpace['definitions']:
+                            defHtml, dontAddMarginAfterType = self.createAnsOxford(Defs, dontAddMarginAfterType, nameSpace['namespace'])
+                            if bool(defHtml):
+                                oneTypeDefs.append(defHtml)
+                    oneType.append(oneTypeDefs)
+                    definitions.append(oneType)
             content.append(definitions)
 
             b = 1
@@ -814,7 +818,7 @@ class MyApp(QLabel):
                     try:
                         if self.textIsWord(clipboard_content):
                             clipboard_content = clipboard_content.strip(".,:;،٬٫/")
-                            if self.dictionary == 'google':
+                            if self.dictionary == 'google' or self._src != 'en':
                                 self.translateWordGoogle(clipboard_content)
                             elif self.dictionary == 'oxford':
                                 self.translateWordOxford(clipboard_content)
