@@ -55,9 +55,9 @@ class MyApp(QLabel):
         self.exportFolderPath = utility.createExportFolder()
         self.ankiCardModel = utility.createAnkiCardsModel()
         self.myDeck = genanki.Deck(2054560191, properties['deckName'])
+        self.savedWordsList = self.loadDeckHistory()
         self.myAnkiPackage = genanki.Package(self.myDeck)
-        self._initTime = datetime.now()  # save deck with date name
-        self.savedWordsList = []  # list of previous saved word
+        self._initTime = datetime.now()
         self.iconsColor = properties['color']
         self.textTranslator = TextTranslator()  # translator object
         self.wordTranslator = WordTranslator()
@@ -141,8 +141,15 @@ class MyApp(QLabel):
 
         onOffTranslateActionButton = contextMenu.addAction("Translate OFF")
 
+        saveButtonText = ''
+        if bool(self.currentState) and self.appHistory[self.currentState - 1][3]:
+            saveButtonText = "Save as Anki Cards ✅"
+        elif bool(self.currentState) and self.appHistory[self.currentState - 1][0] in self.savedWordsList:
+            saveButtonText = "Save as Anki Cards ♻"
+        else:
+            saveButtonText = "Save as Anki Cards"
         saveAnswerToAnkiCardButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/save.png'),
-                                                           "Save as Anki Cards")
+                                                           saveButtonText)
 
         if self.textToSpeechObject.ttsLang == 'en' and win10:
             ttsMenu = QMenu(contextMenu)
@@ -276,6 +283,7 @@ class MyApp(QLabel):
             self.myDeck = genanki.Deck(2054560191, properties['deckName'])
             self.myAnkiPackage = genanki.Package(self.myDeck)
             self._initTime = datetime.now()
+            self.savedWordsList = self.loadDeckHistory()
 
         for i in colorActions:
             if selectedAction == colorActions[i]:
@@ -967,6 +975,23 @@ class MyApp(QLabel):
         if event.key() == Qt.Key_Left:
             self.goBackward()
 
+    def loadDeckHistory(self):
+        if os.path.exists(self.myDeck.name + '.txt'):
+            with open(self.myDeck.name + '.txt', 'r') as fp:
+                words = fp.read().splitlines()
+                fp.close()
+                return words
+        else:
+            open(self.myDeck.name + '.txt', 'x')
+            return []
+
+    def addToDeckHistory(self, word):
+        if word not in self.savedWordsList:
+            self.savedWordsList.append(word)
+            with open(self.myDeck.name + '.txt', 'a') as fp:
+                fp.write('\n' + word)
+                fp.close()
+
     def saveAnki(self):
         if not self.appHistory[self.currentState - 1][3] and self.appHistory[self.currentState - 1][2]:
             unique_filename = str(uuid.uuid4())
@@ -990,6 +1015,7 @@ class MyApp(QLabel):
                 os.path.join(self.exportFolderPath, 'output ' + str(self._initTime).replace(':', '.') + '.apkg'))
             self.appHistory[self.currentState - 1][3] = True
             self.formToggle()
+            self.addToDeckHistory(self.appHistory[self.currentState - 1][0])
 
     def appMinMaxChange(self, e):
         self.appMinimizeFlag = e
