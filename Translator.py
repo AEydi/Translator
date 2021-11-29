@@ -237,12 +237,13 @@ class MyApp(QLabel):
 
         deckNameButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/save.png'),
                                               'Use Clipboard as DeckName')
-        if self.dictionary == 'google':
-            dictionaryButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/option.png'),
-                                              'Google -> Oxford American')
-        elif self.dictionary == 'oxford':
-            dictionaryButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/option.png'),
-                                              'Oxford American -> Google')
+        if self._src == 'en':
+            if self.dictionary == 'google':
+                dictionaryButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/option.png'),
+                                                  'Google ⮞ Oxford American')
+            elif self.dictionary == 'oxford':
+                dictionaryButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/option.png'),
+                                                  'Oxford American ⮞ Google')
 
         copyMenu = QMenu(contextMenu)
         copyMenu.setTitle('Copy')
@@ -270,13 +271,16 @@ class MyApp(QLabel):
             properties = json.load(f)
 
         # actions
-        if selectedAction == dictionaryButton:
-            if self.dictionary == 'google':
-                self.dictionary = 'oxford'
-            else:
-                self.dictionary = 'google'
-            properties['dictionary'] = self.dictionary
-            self.optionChanged = True
+        try:
+            if selectedAction == dictionaryButton:
+                if self.dictionary == 'google':
+                    self.dictionary = 'oxford'
+                else:
+                    self.dictionary = 'google'
+                properties['dictionary'] = self.dictionary
+                self.optionChanged = True
+        except Exception:
+            pass
 
         if selectedAction == deckNameButton:
             properties['deckName'] = pyperclip.paste()
@@ -514,21 +518,20 @@ class MyApp(QLabel):
 
     def createAnsOxford(self, Defs, dontAddMarginAfterType, namespace):
         html = ''
-        if 'description' in Defs:
-            if dontAddMarginAfterType:
-                html += '<div>'
-                dontAddMarginAfterType = False
-            else:
-                html += '<div style="margin-top:5px;">'
-            if 'label' in Defs:
-                html += '<span style="font-size:8pt;line-height:11pt;background-color:#424242;padding-left: 1pt;' \
-                        'padding-right:1pt;"><font color="#b0bec5"> ' + Defs['label'].strip('()').upper() + '</font></span> '
+        if dontAddMarginAfterType:
+            html += '<div>'
+            dontAddMarginAfterType = False
+        else:
+            html += '<div style="margin-top:5px;">'
+        if 'label' in Defs:
+            html += '<span style="font-size:8pt;line-height:11pt;background-color:#424242;padding-left: 1pt;' \
+                    'padding-right:1pt;"><font color="#b0bec5"> ' + Defs['label'].strip('()').upper() + '</font></span> '
 
-            if namespace != '__GLOBAL__':
-                html += '<span style="font-size:8pt">(' + namespace + ')</span> '
-            html += Defs['description'] + '</div>'
-            if bool(len(Defs['examples'])):
-                html += '<div><font color="#ccaca0">' + Defs['examples'][0] + '</font></div>'
+        if namespace != '__GLOBAL__':
+            html += '<span style="font-size:8pt">(' + namespace + ')</span> '
+        html += Defs['description'] + '</div>'
+        if bool(len(Defs['examples'])):
+            html += '<div><font color="#ccaca0">' + Defs['examples'][0] + '</font></div>'
         return html, dontAddMarginAfterType
 
     def definitionsToHtml(self, definitionsRaw):
@@ -699,11 +702,11 @@ class MyApp(QLabel):
     def translateWordOxford(self, clipboard_content):
         clipboard_content = clipboard_content.lower()
         found = Word.get(clipboard_content)
-
         if found != 'not found':
             content = [self.headerText(clipboard_content, pronunciation=Word.pronunciations()['ipa'])]
             ids = Word.ids()
             definitions = []
+            haveDefinition = False
             for id in range(len(ids)):
                 if id != 0:
                     found = Word.get(ids[id])
@@ -720,19 +723,21 @@ class MyApp(QLabel):
                     dontAddMarginAfterType = True
                     for nameSpace in nameSpaces:
                         for Defs in nameSpace['definitions']:
-                            defHtml, dontAddMarginAfterType = self.createAnsOxford(Defs, dontAddMarginAfterType, nameSpace['namespace'])
-                            if bool(defHtml):
+                            if 'description' in Defs:
+                                haveDefinition = True
+                                defHtml, dontAddMarginAfterType = self.createAnsOxford(Defs, dontAddMarginAfterType, nameSpace['namespace'])
                                 oneTypeDefs.append(defHtml)
                     oneType.append(oneTypeDefs)
                     definitions.append(oneType)
             content.append(definitions)
-
-            b = 1
-            html = self.listToHtml(content, True)
-            self.printToQT(html)
-            self.addToHistory(clipboard_content, content, True, False)
+            if haveDefinition:
+                html = self.listToHtml(content, True)
+                self.printToQT(html)
+                self.addToHistory(clipboard_content, content, True, False)
+            else:
+                self.translateWordGoogle(clipboard_content)
         else:
-            self.translateSentence(clipboard_content)
+            self.translateWordGoogle(clipboard_content)
 
     def replaceContent(self, numReqRep, kind):
         definitionsCount = 0
