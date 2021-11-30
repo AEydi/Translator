@@ -127,9 +127,9 @@ class MyApp(QLabel):
 
         translateButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/search.png'), "Translate")
 
-        backInAnswersButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/back.png'), "Previous")
         if self.currentState != len(self.appHistory):
             nextInAnswersButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/Next.png'), "Next")
+        backInAnswersButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/back.png'), "Previous")
 
         minimizeMaximizeButton = contextMenu.addAction('Minimize')
         if self.appMinimizeFlag:
@@ -141,15 +141,11 @@ class MyApp(QLabel):
 
         onOffTranslateActionButton = contextMenu.addAction("Translate OFF")
 
-        saveButtonText = ''
-        if bool(self.currentState) and self.appHistory[self.currentState - 1][3]:
-            saveButtonText = "Save as Anki Cards ✅"
-        elif bool(self.currentState) and self.appHistory[self.currentState - 1][0] in self.savedWordsList:
-            saveButtonText = "Save as Anki Cards ♻"
+        if bool(self.currentState) and self.appHistory[self.currentState - 1][0] in self.savedWordsList:
+            saveIconPath = 'icons/' + self.iconsColor + '/saved.png'
         else:
-            saveButtonText = "Save as Anki Cards"
-        saveAnswerToAnkiCardButton = contextMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/save.png'),
-                                                           saveButtonText)
+            saveIconPath = 'icons/' + self.iconsColor + '/save.png'
+        saveAnswerToAnkiCardButton = contextMenu.addAction(QtGui.QIcon(saveIconPath), "Save as Anki Cards")
 
         if self.textToSpeechObject.ttsLang == 'en' and win10:
             ttsMenu = QMenu(contextMenu)
@@ -235,7 +231,7 @@ class MyApp(QLabel):
             colorActions[i].setIcon(QtGui.QIcon('icons/' + colorList[i] + '.png'))
         optionMenu.addMenu(iconsColorMenu)
 
-        deckNameButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/save.png'),
+        deckNameButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/name.png'),
                                               'Use Clipboard as DeckName')
         if self._src == 'en':
             if self.dictionary == 'google':
