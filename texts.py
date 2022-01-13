@@ -8,31 +8,7 @@ welcomeText = '<div><font style="font-size:13pt">Hi&nbsp;🖐🏻</font></div><d
               '&nbsp;to&nbsp;show&nbsp;Instruction</font></div><div><font ' \
               'style="font-size:10pt">©&nbsp;abdollah.eydi@gmail.com</font></div> '
 
-instructionText = '<div><font style="font-size:10pt">Mouse&nbsp;Actions:<br>Translate->&nbsp;translate' \
-                  '&nbsp;anything&nbsp;in&nbsp;clipboard<br>&nbsp;&nbsp;&nbsp;&nbsp;click&nbsp;on&nbsp' \
-                  ';this,&nbsp;translate&nbsp;selected&nbsp;text&nbsp;on&nbsp;app<br>Previous/next' \
-                  '->&nbsp;toggle&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Translate&nbsp;ON' \
-                  '/OFF->&nbsp;toggle&nbsp;ON/OFF&nbsp;translator<br>Save&nbsp;as&nbsp;Anki&nbsp;Cards' \
-                  '->&nbsp;create&nbsp;anki&nbsp;card&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br>Text' \
-                  '&nbsp;to&nbsp;speech&nbsp;ON/OFF->&nbsp;toggle&nbsp;ON/OFF&nbsp;TTS<br>&nbsp;&nbsp' \
-                  ';&nbsp;&nbsp;in&nbsp;win10&nbsp;you&nbsp;can&nbsp;select&nbsp;TTS&nbsp;engine&nbsp' \
-                  ';between&nbsp;google/windows&nbsp;api<br>Swap&nbsp;Language->&nbsp;toggle&nbsp' \
-                  ';source&nbsp;and&nbsp;destination&nbsp;Language<br>Option->&nbsp;select&nbsp;source' \
-                  '&nbsp;and&nbsp;destination&nbsp;Language<br>&nbsp;&nbsp;&nbsp;&nbsp;Auto&nbsp;Edit' \
-                  '&nbsp;ON/OFF->try&nbsp;to&nbsp;refine&nbsp;copied&nbsp;text<br>&nbsp;&nbsp;&nbsp' \
-                  ';&nbsp;Icon’s&nbsp;Color->select&nbsp;icon’s&nbsp;desired&nbsp;color<br><br>Keyboard' \
-                  '&nbsp;Actions:<br>CTRL&nbsp;+&nbsp;N/F&nbsp;sets&nbsp;text&nbsp;to&nbsp;speech&nbsp' \
-                  ';ON/OFF<br>Key&nbsp;R,' \
-                  '&nbsp;repeats&nbsp;text&nbsp;to&nbsp;speech<br>CTRL&nbsp;+&nbsp;H,' \
-                  '&nbsp;copy&nbsp;the&nbsp;answer&nbsp;with&nbsp;HTML&nbsp;tags<br>CTRL&nbsp;+&nbsp;T,' \
-                  '&nbsp;copy&nbsp;the&nbsp;answer’s&nbsp;text<br>Key&nbsp;S,' \
-                  '&nbsp;create&nbsp;the&nbsp;anki&nbsp;file&nbsp;in&nbsp;Desktop/Export&nbsp;folder<br' \
-                  '>For&nbsp;change&nbsp;the&nbsp;default&nbsp;deck&nbsp;name,' \
-                  '&nbsp;use&nbsp;deckName.txt&nbsp;in&nbsp;the&nbsp;installation&nbsp;directory<br>Key' \
-                  '&nbsp;M&nbsp;or&nbsp;SPACE,&nbsp;minimize&nbsp;and&nbsp;Key&nbsp;X,' \
-                  '&nbsp;maximize&nbsp;act<br>Key&nbsp;◀&nbsp;\&nbsp;▶,' \
-                  '&nbsp;toggle&nbsp;between&nbsp;previous&nbsp;and&nbsp;current&nbsp;answer<br>Windows' \
-                  '&nbsp;TTS&nbsp;only&nbsp;support&nbsp;En</font></div> '
+instructionText = "<div style='text-align: justify;text-justify: inter-word;'><font style='font-size:10pt'>This is a simple Application to make Anki flashcards for words and make text translation easier. By using Google Translate or Oxford American, the app will automatically translate any copied text. Of course, we try to prevent the sending links and passwords to these websites. The app tries to suggest similar options if the word is incorrect. Additionally, if a word is one of the most frequently used words in the Longman or TOEFL test, its tag will be added next to the word. For example, for the word 'abandon' the added tag is <span style='background-color:#a80029;font-size:10px;'>&nbsp;W3&nbsp;</span>&nbsp;<span style='font-size:10px;background-color:#0D47A1;'>&nbsp;TOEFL&nbsp;</span>. To see the definition in the Longman dictionary just click on the word.<br>By right-clicking on the app you will have access to the settings menu and buttons.<br>• The translate button will translate text that has been selected in the app or copied.<br>• The previous and next buttons (as well as the right and left buttons on the keyboard) can be used to navigate through the translated history.<br>• Minimize or maximize the app by minimize/maximize button (also the space bar).<br>• Translate On/Off allows you to turn the automatic translate feature on or off when you do not want a text to be translated or just want to use the other features of the app.<br>• Create Anki flashcards with the Save As Anki Cards button. Flashcards will be stored in the Export folder on your desktop.<br>• The next button will allow you to use text-to-speech. In Windows, you can select either Google or Microsoft text-to-speech.<br>• The Swap button lets you switch between the current source and destination languages.<br>• In the Options menu, you can select the source and destination language.<br>• The app tries to correct wrong and extra characters such as extra Newlines, If it does not appropriately work for you or you do not want it, you can turn it off(or on) by the Auto Edit Paragraph button.<br>• On the next menu, you can change the icons' color.<br>• To change the name of the current Anki deck where the cards are saved, just copy the desired name and click on Use Clipboard As DeckName.<br>•&nbsp;Furthermore,&nbsp;The&nbsp;translation&nbsp;source&nbsp;for&nbsp;the&nbsp;English&nbsp;language&nbsp;can&nbsp;be&nbsp;selected&nbsp;between&nbsp;Google&nbsp;Translate&nbsp;and&nbsp;Oxford&nbsp;American.<br>• The copy menu offers three options. Copy the selected text in the app without translation, copy all text with HTML tags or just copy the pure text.<br>There are also a few shortcuts in the app.<br>• To customize cards, you can add a new example or definition or change the current examples and definitions. First press key A (Add) or C (Change), next choose key D (Definition) or E (Example), and finally press the definition or example number and then press Enter.<br>• The key R will play the sound of the copied text.<br>• You can delete definitions by entering the desired number and pressing enter.</font></div>"
 
 sourceLanguageList = {'Auto detect': 'auto',
                       'English': 'en',

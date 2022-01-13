@@ -239,7 +239,7 @@ class MyApp(QLabel):
                                                   'Google ⮞ Oxford American')
             elif self.dictionary == 'oxford':
                 dictionaryButton = optionMenu.addAction(QtGui.QIcon('icons/' + self.iconsColor + '/option.png'),
-                                                  'Oxford American ⮞ Google')
+                                                  'Oxford American ⮞ \u2b9e Google')
 
         copyMenu = QMenu(contextMenu)
         copyMenu.setTitle('Copy')
@@ -552,12 +552,16 @@ class MyApp(QLabel):
     def wordsToHtml(self, wordsRaw):
         html = ''
         color = ["#42A5F5", "#90CAF9", "#E3F2FD"]
+        wordsType = {"noun": "اسم", "determiner": "تعیین کننده", "pronoun": "ضمیر", "verb": "فعل", "adjective": "صفت",
+                     "adverb": "قید", "preposition": "حرف اضافه", "conjunction": "حرف ربط"}
         words = []
         for defType in wordsRaw[0]:
             if defType[0]:
-                html += '<div style="margin-top:8px;"><font color="#FFC107">' + defType[0].capitalize() + '</font>: '
+                wordType = wordsType[defType[0].lower()]
+                html += '<div style="margin-top:8px;"><font color="#FFC107">' + wordType + '</font>: '
                 for word in defType[1]:
-                    words.append('<font color=' + color[word[3] - 1] + '>‎' + word[0] + '‎</font>')
+                    #words.append('<font color=' + color[word[3] - 1] + '>‎' + word[0] + '‎</font>')
+                    words.append('<font color=' + color[word[3] - 1] + '>' + word[0] + '</font>')
                 html += '<span>' + ', </span><span>'.join(words) + '</span></div>'
                 words = []
         return html
@@ -687,7 +691,7 @@ class MyApp(QLabel):
                 if definitions is not None:
                     content.append(definitions)
                     isKindWord = True
-            elif wordsRaw is not None:
+            if wordsRaw is not None:
                 content[0] += self.wordsToHtml(wordsRaw)
             html = self.listToHtml(content, True)
             self.printToQT(html)
@@ -698,6 +702,9 @@ class MyApp(QLabel):
     def translateWordOxford(self, clipboard_content):
         clipboard_content = clipboard_content.lower()
         found = Word.get(clipboard_content)
+        ans = self.wordTranslator.translate(clipboard_content, dest=self._dest, src=self._src)
+        ansData = ans.extra_data['parsed']
+        wordsRaw = ansData[3][5]
         if found != 'not found':
             content = [self.headerText(clipboard_content, pronunciation=Word.pronunciations()['ipa'])]
             ids = Word.ids()
@@ -727,6 +734,8 @@ class MyApp(QLabel):
                     definitions.append(oneType)
             content.append(definitions)
             if haveDefinition:
+                if wordsRaw is not None:
+                    content[0] += self.wordsToHtml(wordsRaw)
                 html = self.listToHtml(content, True)
                 self.printToQT(html)
                 self.addToHistory(clipboard_content, content, True, False)

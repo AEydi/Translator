@@ -4,6 +4,7 @@ import re
 import platform
 import wordsHaveDot
 
+
 def createAnkiCardsModel():
     CardModel = genanki.Model(
         1380120064,
@@ -17,24 +18,67 @@ def createAnkiCardsModel():
             {
                 'name': 'Card 1',
                 'qfmt': '{{Front}}{{MyMedia}}',
-                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
+                'afmt': "<div id='front'>{{FrontSide}}</div><hr id='answer'>{{Back}} "
+                        "<script> "
+                        "function checkRtl( character ) { "
+                        "var RTL = ['ا','ب','پ','ت','س','ج','چ','ح','خ','د','ذ','ر','ز','ژ','س','ش','ص','ض','ط','ظ',"
+                        "'ع','غ','ف','ق','ک','گ','ل','م','ن','و','ه','ی']; "
+                        "    return RTL.indexOf( character ) > -1; "
+                        "}; "
+                        " "
+                        "var divs = document.getElementsByTagName( 'div' ); "
+                        " "
+                        "for ( var index = 0; index < divs.length; index++ ) { "
+                        "    if( checkRtl( divs[index].textContent[0] ) ) { "
+                        "        divs[index].className = 'rtl'; "
+                        "    } else { "
+                        "        divs[index].className = 'ltr'; "
+                        "    }; "
+                        "}; "
+                        " "
+                        "document.getElementById('front').style.textAlign = 'center'; "
+                        "</script>",
             },
         ],
         css='''
             .card {
-            font-family: IRANSansWeb Medium;
-            font-size: 20px;
-            text-align: center;
-            color: black;
-            background-color: white;
-            }
-            .card.night_mode {
-            font-family: IRANSansWeb Medium;
-            font-size: 20px;
-            text-align: center;
-            color: white;
-            background-color: black;
-            }
+                font-family: IRANSansWeb Medium;
+                font-size: 20px;
+                color: black;
+                background-color: white;	
+                text-align:center;
+                }
+                .card.night_mode {
+                font-family: IRANSansWeb Medium;
+                font-size: 20px;
+                text-align:center;
+                color: white;
+                background-color: black;
+                }
+                        
+            .rtl {
+                direction: rtl;
+                text-align: right;
+                unicode-bidi: bidi-override;
+                max-width:90%;
+                margin: 0 auto;
+                }
+                @media (max-width: 600px) {
+                    .rtl {
+                    max-width:100%;
+                    }}
+            
+            .ltr {
+                direction: ltr; 
+                text-align: left;
+                unicode-bidi: bidi-override;
+                max-width:90%;
+                margin: 0 auto;
+                }
+                @media (max-width: 600px) {
+                    .ltr {
+                    max-width:100%;
+                    }}
         ''')
     return CardModel
 
