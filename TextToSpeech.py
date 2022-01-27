@@ -6,7 +6,7 @@ import sys
 import threading
 import time
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from gtts import gTTS
 
 if platform.system() == "Windows" and platform.release() == "10":
@@ -56,8 +56,8 @@ class TextToSpeech(threading.Thread):
                     continue
                 os.remove(file)
 
-    def Read(self, ReceivedText):
-        self.ReceivedText = ReceivedText  # receive text for tts
+    def read(self, received_text):
+        self.ReceivedText = received_text  # receive text for tts
 
     def run(self):
         while not self._stopping:

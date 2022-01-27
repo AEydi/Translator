@@ -3,7 +3,7 @@ import threading
 import time
 
 import pyperclip
-from PyQt5.QtCore import pyqtSignal, QThread
+from PyQt6.QtCore import pyqtSignal, QThread
 
 
 class ClipboardWatcher(QThread):
