@@ -12,7 +12,8 @@ I recommend using pyinstaller or auto-py-to-exe for creating windows executable,
 
 - pyinstaller --noconfirm --onedir --windowed --icon ".../Translator/icons/Translator.ico" --add-data ".../Translator/icons;icons/" --add-data ".../Translator/font;font/" --add-data ".../Translator/spellchecker;spellchecker/" --add-data ".../Translator/properties.json;." --hidden-import "pyttsx3.drivers.sapi5" ".../Translator/Translator.py”
 
-For macOS use this: python3 setup.py py2app
+For macOS use py2app, and this is the command to build executable, after building the application you need to add required files to the application bundle:
+- python3 setup.py py2app
 
 ## Download
 
